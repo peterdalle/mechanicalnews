@@ -1,6 +1,6 @@
 # Mechanical News
 
-Mechanical News is a Python web server application that crawls and saves news articles for research purpose.
+Mechanical News is a Python web server application that crawls and saves news articles for research purposes.
 
 - Automatically download and extract information from news articles
 - Save structured information into a searchable database
@@ -11,24 +11,35 @@ Researchers can use Mechanical News with a client library of their favorite prog
 
 An R client library for the Mechanical News API is being developed. An equivalent for Python is planned as well.
 
-This project is under development at the [Department of Journalism, Media and Communication (JMG), University of Gothenburg](https://jmg.gu.se/english). Specifications may change.
+This project is under development at the [Department of Journalism, Media and Communication (JMG), University of Gothenburg](https://jmg.gu.se/english).
 
-## Application architecture
+## Requirements
 
-The design approach is [API first](https://medium.com/adobetech/three-principles-of-api-first-design-fa6666d9f694), and Mechanical News expose a RESTful API.
+- Python 3+
+- Windows, Linux or Mac OS
 
-Mechanical News backend depends on:
+Mechanical News relies on [Scrapy](https://scrapy.org/) for web scraping.
 
-- Python 3+ running nginx on Ubuntu
-- Crawler [Scrapy](https://github.com/scrapy/scrapy) with [Scrapy-Splash](https://github.com/scrapy-plugins/scrapy-splash)
-- Indexer [newspaker3k](https://github.com/codelucas/newspaper)
-- Database MySQL/MariaDB
+## Install
 
-![Application design.](man/img/application-design.png)
+```
+pip install https://github.com/peterdalle/mechanicalnews
+```
 
-## Database architecture
+Note: This is a development version. The install may fail.
 
-![Database table design.](man/img/table-design.png)
+## Documentation
+
+See [documentation wiki](https://github.com/peterdalle/mechanicalnews/wiki).
+
+## Contribute
+
+Read [how to contribute to the software](CONTRIBUTE.md).
+
+## Support
+
+- Report issues or problems by [submitting a new issue](https://github.com/peterdalle/mechanicalnews/issues/new)
+- Read how to [get further support](SUPPORT.md)
 
 ## Todo
 
@@ -46,8 +57,9 @@ Mechanical News backend depends on:
 
 ## History
 
-- 2019-02-08 Design implementation.
-- 2018-10-22 Design idea started.
+- 2019-02-13 Programming started
+- 2019-02-08 Design implementation
+- 2018-10-22 Design idea started
 
 ## License
 
