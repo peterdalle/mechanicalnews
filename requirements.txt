@@ -1,0 +1,11 @@
+dateparser>=0.7.1
+extruct>=0.7.3
+flask_restful>=0.3.7
+Flask>=1.0.2
+langdetect>=1.0.7
+mysql-connector-python>=2.1.6
+pillow>=5.0.0
+scrapy-selenium>=0.0.7
+scrapy-splash>=0.7.2
+scrapy>=1.6.0
+tldextract>=2.2.1
