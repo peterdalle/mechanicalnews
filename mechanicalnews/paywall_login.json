@@ -1,0 +1,8 @@
+{ 
+    "spiders": {
+        "SPIDER NAME HERE": {
+            "username": "USERNAME HERE",
+            "password": "PASSWORD HERE"
+        }
+    }
+}
