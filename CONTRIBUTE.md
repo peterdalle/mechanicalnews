@@ -1,10 +1,16 @@
 # How to contribute to Mechanical News
 
-This document contain brief guidelines as to how you can contribute to the software development.
+## You can help with
+
+- Add a custom web scraper.
+- Test the software and report bugs.
+- Improve documentation.
+
+## Beginners guide
 
 Read, for example, [The beginner's guide to contributing to a GitHub project](https://akrabat.com/the-beginners-guide-to-contributing-to-a-github-project/#summary). 
 
-In summary:
+Summary:
 
 1. Fork the project and clone locally.
 2. Create an upstream remote and sync your local copy before you branch.
@@ -16,8 +22,9 @@ In summary:
 
 ## Guidelines
 
-Follow these Python guidelines:
+- follow [PEP 8 -- Style Guide for Python Code](https://www.python.org/dev/peps/pep-0008/) to make the code consistent.
+- follow [PEP 287 -- reStructuredText Docstring Format](https://www.python.org/dev/peps/pep-0287/) to comment the code.
 
-- follow [PEP 8 -- Style Guide for Python Code](https://www.python.org/dev/peps/pep-0008/) to make the code consistent
-- follow [PEP 287 -- reStructuredText Docstring Format](https://www.python.org/dev/peps/pep-0287/) to comment the code
-- unit test as much as possible
+These are *guidelines*, not rules to die for.
+
+But do make sure to **unit test as much as possible**.
