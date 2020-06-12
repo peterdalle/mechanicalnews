@@ -2,7 +2,7 @@
 """
 Module for generating alerts about too many missing values.
 """
-from core import SummaryStats
+from stats import SummaryStats
 from database import MySqlDatabase
 
 

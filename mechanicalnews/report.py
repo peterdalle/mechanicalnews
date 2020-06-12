@@ -8,7 +8,8 @@ import sys
 import argparse
 import smtplib
 import datetime
-from core import SummaryStatistics, ArticleFilter, ArticleManager
+from core import ArticleFilter, ArticleManager
+from stats import SummaryStats
 from settings import AppConfig
 from utils import TextUtils, FileUtils, WebUtils, PrettyPrint
 from items import LogAction
@@ -21,7 +22,7 @@ class Reports():
     def print_database_size(projected_size=False):
         """Print total database size, and size of each table."""
         print("Database size:")
-        ss = SummaryStatistics()
+        ss = SummaryStats()
         d = ss.get_database_size()
         all_tables = ss.get_database_size(all_tables=True)
         # Total.
@@ -52,7 +53,7 @@ class Reports():
     @staticmethod
     def print_source_counts():
         print("Sources:")
-        ss = SummaryStatistics()
+        ss = SummaryStats()
         s = ss.get_source_counts()
         lines = []
         for pair in s:
@@ -63,7 +64,7 @@ class Reports():
     @staticmethod
     def print_article_counts():
         print("Article count:")
-        ss = SummaryStatistics()
+        ss = SummaryStats()
         s = ss.get_summary()
         map_explanations = {
             "num_log": "Logs",
@@ -88,7 +89,7 @@ class Reports():
     def print_log(limit=7):
         """Print the latest entries from the log."""
         print("Log:")
-        ss = SummaryStatistics()
+        ss = SummaryStats()
         rows = []
         for row in ss.get_log(limit):
             rows.append((
@@ -163,7 +164,7 @@ class Reports():
     def print_spider_crawls(days_back=7):
         print("Crawls:")
         rows = []
-        ss = SummaryStatistics()
+        ss = SummaryStats()
         for crawl in ss.get_crawled_articles_per_day(days_back):
             rows.append((crawl["day"], str(crawl["articles"])))
         PrettyPrint.print_columns(rows, headers=["Day", "Saved pages"],
@@ -316,7 +317,7 @@ Crawling and missing values last {days_back} days:
 {missing}
 """
 
-        ss = SummaryStatistics()
+        ss = SummaryStats()
         s = ss.get_summary()
         missing = ss.get_missing_values_by_day(days_back)
         missing = self.build_missing_values_message(missing)

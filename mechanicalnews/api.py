@@ -13,7 +13,8 @@ from flask import send_from_directory
 from flask_restful import Resource, Api
 from settings import AppConfig
 from core import UserManager, SourceManager, ArticleManager
-from core import ArticleFilter, SummaryStats, MySqlDatabase
+from core import ArticleFilter, MySqlDatabase
+from stats import SummaryStats
 
 
 API_VERSION = "1.0"
