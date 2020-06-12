@@ -1,6 +1,6 @@
 # Mechanical News
 
-Mechanical News is a framework that scrapes and saves the full text of online news articles to a database for social science research purposes.
+Mechanical News is an application framework that scrapes and saves the full text of online news articles to a database for social science research purposes.
 
 Mechanical News it built on top of [Scrapy](https://scrapy.org/) and [Flask](http://flask.pocoo.org/), which lets you write web scrapers that retrieve news articles (using Scrapy), store them in the database, and then connect to a RESTful API to retrieve the articles from the database (using Flask).
 
