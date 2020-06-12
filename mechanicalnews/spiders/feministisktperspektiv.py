@@ -10,7 +10,7 @@ import scrapy
 
 
 class FeministisktPerspektivSpider(BaseArticleSpider):
-    """Web scraper for articles on etc.se."""
+    """Web scraper for articles on feministisktperspektiv.se."""
     SPIDER_GUID = "692cfcf4-cbee-4a44-9651-44e9cbb6393e"
     DEFAULT_LANGUAGE = "sv"
     LAST_UPDATED = "2020-05-19"
