@@ -153,7 +153,7 @@ class Reports():
             rows.append((
                 "#" + str(a["id"]),
                 Reports._shorten_date(a["added"]),
-                WebUtils.get_domain_name(a["domain_name"],
+                WebUtils.get_domain_name(a["domain"],
                                          include_subdomain=False),
                 Reports._sanitize_text(a["title"]),
                 Reports._shorten_date(a["published"])))
