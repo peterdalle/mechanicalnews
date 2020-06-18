@@ -2,12 +2,18 @@
 """
 Unit tests of the classes in the basespider module.
 """
+# Use relative import of module for testing.
+import sys, os
+testdir = os.path.dirname(__file__)
+srcdir = "../mechanicalnews"
+sys.path.insert(0, os.path.abspath(os.path.join(testdir, srcdir)))
+
 import datetime
 from datetime import tzinfo
 import unittest
-import tests.html_snippets as html_snippets
+import html_snippets as html_snippets
 from basespider import BaseArticleSpider
-from basespider import ArticleExtractorParserError, ArticleExtractor
+from extractors import ArticleExtractor, ArticleExtractorParserError
 
 
 class RunTest_BaseSpider(unittest.TestCase):

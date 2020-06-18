@@ -2,12 +2,18 @@
 """
 Unit tests of spider.
 """
+# Use relative import of module for testing.
+import sys, os
+testdir = os.path.dirname(__file__)
+srcdir = "../mechanicalnews"
+sys.path.insert(0, os.path.abspath(os.path.join(testdir, srcdir)))
+
 import datetime
 import unittest
-import tests.html_snippets as html_snippets
+import html_snippets as html_snippets
 from datetime import tzinfo
-from basespider import (BaseArticleSpider, ArticleExtractorParserError,
-                        ArticleExtractor)
+from basespider import BaseArticleSpider
+from extractors import ArticleExtractor, ArticleExtractorParserError
 from spiders.goteborgsposten import GoteborgspostenSpider
 
 

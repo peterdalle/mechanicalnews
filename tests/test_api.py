@@ -2,6 +2,12 @@
 """
 Unit tests of the classes in the api module.
 """
+# Use relative import of module for testing.
+import sys, os
+testdir = os.path.dirname(__file__)
+srcdir = "../mechanicalnews"
+sys.path.insert(0, os.path.abspath(os.path.join(testdir, srcdir)))
+
 import unittest
 import api
 
