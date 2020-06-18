@@ -104,38 +104,38 @@ class FeministisktPerspektivSpider(BaseArticleSpider):
 
     def extract_article_genre(self) -> ArticleGenre:
         """Try to determine type of article (e.g., news, opinion, sports)."""
-        tags = self.extract_tags() if self.extract_tags() else []
-        if "INTERNATIONAL" in tags:
+        section = self.extract_section() if self.extract_section() else []
+        if "INTERNATIONAL" in section:
             return ArticleGenre.NEWS
-        if "OPINION/INTERNATIONAL" in tags:
+        if "OPINION/INTERNATIONAL" in section:
             return ArticleGenre.OPINION
-        if "CULTURE/INTERNATIONAL" in tags:
+        if "CULTURE/INTERNATIONAL" in section:
             return ArticleGenre.ENTERTAINMENT
-        if "CULTURE/INTERNATIONAL" in tags:
+        if "CULTURE/INTERNATIONAL" in section:
             return ArticleGenre.ENTERTAINMENT
-        if "SPORTS/INTERNATIONAL" in tags:
+        if "SPORTS/INTERNATIONAL" in section:
             return ArticleGenre.SPORTS
-        if "KRÖNIKA/KULTUR" in tags:
+        if "KRÖNIKA/KULTUR" in section:
             return ArticleGenre.ENTERTAINMENT
-        if "KRÖNIKA/OPINION" in tags:
+        if "KRÖNIKA/OPINION" in section:
             return ArticleGenre.OPINION
-        if "KRÖNIKA/UTRIKES" in tags:
+        if "KRÖNIKA/UTRIKES" in section:
             return ArticleGenre.OPINION
-        if "EU-KRÖNIKAN/OPINION" in tags:
+        if "EU-KRÖNIKAN/OPINION" in section:
             return ArticleGenre.OPINION
-        if "OPINION" in tags:
+        if "OPINION" in section:
             return ArticleGenre.OPINION
-        if "INRIKES" in tags:
+        if "INRIKES" in section:
             return ArticleGenre.NEWS
-        if "UTRIKES" in tags:
+        if "UTRIKES" in section:
             return ArticleGenre.NEWS
-        if "EKONOMI" in tags:
+        if "EKONOMI" in section:
             return ArticleGenre.NEWS
-        if "KULTUR" in tags:
+        if "KULTUR" in section:
             return ArticleGenre.ENTERTAINMENT
-        if "FEMINISM" in tags:
+        if "FEMINISM" in section:
             return ArticleGenre.NEWS
-        if "SPORTS" in tags:
+        if "SPORTS" in section:
             return ArticleGenre.SPORTS
         return ArticleGenre.NONE
 
