@@ -6,7 +6,6 @@ Mechanical News it built on top of [Scrapy](https://scrapy.org/) and [Flask](htt
 
 You run Mechanical News on your own server. The users (i.e., researchers) instead use an R library or Python package to access the articles in a [tidy data](https://en.wikipedia.org/wiki/Tidy_data) format directly from the API. The researcher doesn't need to know anything about how Mechanical News works.
 
-
 ## Features
 
 - Build your own Scrapy scraper (or use an existing scraper from the library)
@@ -44,7 +43,7 @@ Metadata
 
 ## Overview of the architecture
 
-![Overview of the architecture of Mechanical News.](architecture.png)
+<img src="architecture.png" width="50%" alt="Overview of the architecture of Mechanical News">
 
 ## Install
 
