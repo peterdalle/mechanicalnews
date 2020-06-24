@@ -448,44 +448,6 @@ class DateUtils():
         return None
 
 
-class WebUtils():
-    """Various web and URL utilities for extracing domain names."""
-
-    @staticmethod
-    def get_domain_name(url: str, include_subdomain=True) -> str:
-        """Get domain name from a given URL (e.g., `example.org`).
-
-        E.g., `https://www.example.org/subdir/image.jpg` will be returned as
-        `www.example.org`.
-
-        Parameters
-        ----------
-        url : str
-            A URL to extract domain name from.
-        include_subdomain : bool
-            Whether or not to include subdomain. If set to `True`,
-            `https://www.example.org/` will be returned as `www.example.org`.
-            If set to `False`, it will be returned as `example.org`. If the
-            subdomain is lacking, it will be returned as `example.org`.
-
-        Returns
-        -------
-        str
-            Returns a domain name and its top-level domain (with or without
-            subdomain).
-        """
-        if not url:
-            return None
-        d = tldextract.extract(url)
-        if include_subdomain and d.subdomain:
-            return "{}.{}.{}".format(d.subdomain, d.domain, d.suffix)
-        elif d and d.suffix:
-            return "{}.{}".format(d.domain, d.suffix)
-        elif d:
-            return d.domain
-        return None
-
-
 class PrettyPrint():
     """Various utils for printing data to screen in a way that doesn't
     look horrific."""
@@ -646,3 +608,41 @@ class PrettyPrint():
                 bar += ""
             bar = bar or ""
             print(f"{label.rjust(longest_label_len)}: {count:#10d} {bar}")
+
+
+class WebUtils():
+    """Various web and URL utilities for extracing domain names."""
+
+    @staticmethod
+    def get_domain_name(url: str, include_subdomain=True) -> str:
+        """Get domain name from a given URL (e.g., `example.org`).
+
+        E.g., `https://www.example.org/subdir/image.jpg` will be returned as
+        `www.example.org`.
+
+        Parameters
+        ----------
+        url : str
+            A URL to extract domain name from.
+        include_subdomain : bool
+            Whether or not to include subdomain. If set to `True`,
+            `https://www.example.org/` will be returned as `www.example.org`.
+            If set to `False`, it will be returned as `example.org`. If the
+            subdomain is lacking, it will be returned as `example.org`.
+
+        Returns
+        -------
+        str
+            Returns a domain name and its top-level domain (with or without
+            subdomain).
+        """
+        if not url:
+            return None
+        d = tldextract.extract(url)
+        if include_subdomain and d.subdomain:
+            return "{}.{}.{}".format(d.subdomain, d.domain, d.suffix)
+        elif d and d.suffix:
+            return "{}.{}".format(d.domain, d.suffix)
+        elif d:
+            return d.domain
+        return None
