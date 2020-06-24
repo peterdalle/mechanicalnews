@@ -3,9 +3,9 @@
 from datetime import datetime
 import scrapy
 from bs4 import BeautifulSoup
-from basespider import BaseArticleSpider
-from extractors import ArticleExtractor
-from items import ArticleItem, PageType, ArticleGenre
+from mechanicalnews.basespider import BaseArticleSpider
+from mechanicalnews.extractors import ArticleExtractor
+from mechanicalnews.items import ArticleItem, PageType, ArticleGenre
 
 
 class AftonbladetSpider(BaseArticleSpider):

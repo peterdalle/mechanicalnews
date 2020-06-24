@@ -11,10 +11,10 @@ from functools import wraps
 from flask import Flask, jsonify, request, make_response, redirect
 from flask import send_from_directory
 from flask_restful import Resource, Api
-from settings import AppConfig
-from core import UserManager, SourceManager, ArticleManager
-from core import ArticleFilter, MySqlDatabase
-from stats import SummaryStats
+from mechanicalnews.settings import AppConfig
+from mechanicalnews.core import UserManager, SourceManager, ArticleManager
+from mechanicalnews.core import ArticleFilter, MySqlDatabase
+from mechanicalnews.stats import SummaryStats
 
 
 API_VERSION = "1.0"

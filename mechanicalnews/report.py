@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
 """
 Module for generating reports about the Mechanical News status, such as
-statistics about the crawling, database size, articles. Can be runned as
-a command line interface (CLI) or as module you can import.
+statistics about the crawling, database size, number of articles collected etc.
+Can be runned as a command line interface (CLI) or as module you can import.
+Most of the summary statistics are fetched from the stats module.
 """
 import sys
 import argparse
 import smtplib
 import datetime
-from core import ArticleFilter, ArticleManager
-from stats import SummaryStats
-from settings import AppConfig
-from utils import TextUtils, FileUtils, WebUtils, PrettyPrint
-from items import LogAction
+from mechanicalnews.core import ArticleFilter, ArticleManager
+from mechanicalnews.stats import SummaryStats
+from mechanicalnews.settings import AppConfig
+from mechanicalnews.utils import TextUtils, FileUtils, WebUtils, PrettyPrint
+from mechanicalnews.items import LogAction
 
 
 class Reports():

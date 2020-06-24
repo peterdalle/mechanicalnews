@@ -13,22 +13,12 @@ import scrapy
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 from functools import lru_cache
-import settings
-from utils import WebUtils, PrettyPrint
-from basespider import BaseArticleSpider
+import mechanicalnews.settings
+from mechanicalnews.utils import WebUtils, PrettyPrint
+from mechanicalnews.basespider import BaseArticleSpider
 
 if sys.version_info[0] < 3:
     raise Exception("Mechanical News requires Python 3 or higher.")
-
-__version__ = "0.0.1"
-__status__ = "Development"  # Development/Prototype/Production
-
-__author__ = "Peter M. Dahlgren"
-__copyright__ = "Copyright 2020"
-__credits__ = ["Peter M. Dahlgren"]
-__license__ = "GPL"
-__maintainer__ = "Peter M. Dahlgren"
-__email__ = "peter@backendmedia.se"
 
 
 class MechanicalNewsError(Exception):

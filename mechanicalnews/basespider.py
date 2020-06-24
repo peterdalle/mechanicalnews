@@ -9,10 +9,10 @@ import lxml
 import dateparser
 import extruct
 from abc import abstractmethod
-from items import FrontpageItem, ArticleItem, PageType, ArticleGenre
-from settings import AppConfig
-from utils import TextUtils
-from extractors import ArticleExtractor
+from mechanicalnews.items import FrontpageItem, ArticleItem, PageType, ArticleGenre
+from mechanicalnews.settings import AppConfig
+from mechanicalnews.utils import TextUtils
+from mechanicalnews.extractors import ArticleExtractor
 from scrapy.http import Request, Response
 from scrapy.spiders import CrawlSpider
 from scrapy_splash import SplashRequest, SlotPolicy

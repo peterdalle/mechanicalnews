@@ -1,5 +1,5 @@
 import mysql.connector
-from settings import AppConfig
+from mechanicalnews.settings import AppConfig
 
 
 class MySqlDatabase():

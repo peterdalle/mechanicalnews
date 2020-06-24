@@ -5,10 +5,10 @@ import scrapy
 from scrapy.spiders import Rule
 from scrapy.linkextractors import LinkExtractor
 from scrapy_splash import SplashRequest, SlotPolicy
-from basespider import BaseArticleSpider
-from extractors import ArticleExtractor
-from items import ArticleItem, PageType, ArticleGenre
-from settings import PaywallLogin
+from mechanicalnews.basespider import BaseArticleSpider
+from mechanicalnews.extractors import ArticleExtractor
+from mechanicalnews.items import ArticleItem, PageType, ArticleGenre
+from mechanicalnews.settings import PaywallLogin
 
 
 class SvenskaDagbladetSpider(BaseArticleSpider):
@@ -16,7 +16,7 @@ class SvenskaDagbladetSpider(BaseArticleSpider):
     SPIDER_GUID = "c2a9e4a5-606f-497c-8d2a-0a19d3518ebd"
     LAST_UPDATED = "2020-05-19"
     DEFAULT_LANGUAGE = "sv"
-    USE_SPLASH = True
+    USE_SPLASH = False
     name = "svenskadagbladet"
     allowed_domains = ["svd.se"]
     start_urls = [

@@ -8,10 +8,10 @@ import string
 import json
 import random
 import hashlib
-from utils import DateUtils
-from items import LogAction, ArticleItem, SourceItem
-from settings import AppConfig
-from database import MySqlDatabase
+from mechanicalnews.utils import DateUtils
+from mechanicalnews.items import LogAction, ArticleItem, SourceItem
+from mechanicalnews.settings import AppConfig
+from mechanicalnews.database import MySqlDatabase
 
 
 class UserManager():

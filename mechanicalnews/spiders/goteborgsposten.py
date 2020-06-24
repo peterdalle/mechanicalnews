@@ -5,10 +5,10 @@ import scrapy
 from scrapy_splash import SlotPolicy, SplashRequest
 from scrapy.spiders import Rule
 from scrapy.linkextractors import LinkExtractor
-from settings import PaywallLogin
-from basespider import BaseArticleSpider
-from extractors import ArticleExtractor
-from items import ArticleItem, PageType, ArticleGenre
+from mechanicalnews.settings import PaywallLogin
+from mechanicalnews.basespider import BaseArticleSpider
+from mechanicalnews.extractors import ArticleExtractor
+from mechanicalnews.items import ArticleItem, PageType, ArticleGenre
 
 
 class GoteborgspostenSpider(BaseArticleSpider):
@@ -17,8 +17,8 @@ class GoteborgspostenSpider(BaseArticleSpider):
     LAST_UPDATED = "2020-05-19"
     AUTHORS = ["Peter M. Dahlgren"]
     AUTHORS_EMAIL = ["peterdalle+github@gmail.com"]
-    USE_LOGIN = True
-    USE_SPLASH = True
+    USE_LOGIN = False
+    USE_SPLASH = False
     DEFAULT_LANGUAGE = "sv"
     name = "goteborgsposten"
     allowed_domains = ["gp.se"]

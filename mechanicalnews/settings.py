@@ -8,7 +8,7 @@ from shutil import which
 
 # Selenium options (see https://github.com/clemfromspace/scrapy-selenium)
 SELENIUM_DRIVER_NAME = 'firefox'
-SELENIUM_DRIVER_EXECUTABLE_PATH = "/mechanicalnews/webdriver/geckodriver"
+SELENIUM_DRIVER_EXECUTABLE_PATH = "/mechanicalnews/webdriver/geckodriver.exe"
 SELENIUM_DRIVER_ARGUMENTS = ['-headless']
 
 # Name of crawler.

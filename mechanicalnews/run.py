@@ -3,7 +3,7 @@
 Module for the main command line interface (CLI) that starts crawling with
 all spiders or just some specific spiders.
 """
-from __init__ import MechanicalNews, MechanicalNewsError
+from mechanicalnews.__init__ import MechanicalNews, MechanicalNewsError
 import sys
 import argparse
 

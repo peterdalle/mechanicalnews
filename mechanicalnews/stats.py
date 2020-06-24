@@ -2,9 +2,9 @@
 """
 Module for summary statistics of already collected articles.
 """
-from utils import DateUtils
-from settings import AppConfig
-from database import MySqlDatabase
+from mechanicalnews.utils import DateUtils
+from mechanicalnews.settings import AppConfig
+from mechanicalnews.database import MySqlDatabase
 
 
 class SummaryStats():

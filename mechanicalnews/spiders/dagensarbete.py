@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from scrapy.http import Response
-from basespider import BaseArticleSpider
-from extractors import ArticleExtractor
-from items import ArticleItem, PageType, ArticleGenre
+from mechanicalnews.basespider import BaseArticleSpider
+from mechanicalnews.extractors import ArticleExtractor
+from mechanicalnews.items import ArticleItem, PageType, ArticleGenre
 import re
 from datetime import datetime
 

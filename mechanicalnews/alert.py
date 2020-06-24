@@ -2,8 +2,8 @@
 """
 Module for generating alerts about too many missing values.
 """
-from stats import SummaryStats
-from database import MySqlDatabase
+from mechanicalnews.stats import SummaryStats
+from mechanicalnews.database import MySqlDatabase
 
 
 class Alert():

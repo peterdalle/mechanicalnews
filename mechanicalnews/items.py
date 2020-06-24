@@ -5,7 +5,7 @@ to classify the article content.
 """
 import scrapy
 from enum import IntEnum
-from utils import DateUtils, WebUtils
+from mechanicalnews.utils import DateUtils, WebUtils
 
 
 class PageType(IntEnum):

@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from datetime import datetime
-from settings import PaywallLogin
-from basespider import BaseArticleSpider
-from extractors import ArticleExtractor
-from items import ArticleItem, PageType, ArticleGenre
+from mechanicalnews.settings import PaywallLogin
+from mechanicalnews.basespider import BaseArticleSpider
+from mechanicalnews.extractors import ArticleExtractor
+from mechanicalnews.items import ArticleItem, PageType, ArticleGenre
 import scrapy
 from scrapy.spiders import Rule
 from scrapy.linkextractors import LinkExtractor
@@ -16,8 +16,8 @@ class DagensNyheterSpider(BaseArticleSpider):
     SPIDER_GUID = "565ee7ce-ff93-4c14-b03c-a60d76b6cc97"
     DEFAULT_LANGUAGE = "sv"
     LAST_UPDATED = "2020-05-19"
-    USE_SPLASH = True
-    USE_LOGIN = True
+    USE_SPLASH = False
+    USE_LOGIN = False
     name = "dagensnyheter"
     allowed_domains = ["dn.se"]
     start_urls = [
