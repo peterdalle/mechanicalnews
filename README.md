@@ -1,19 +1,19 @@
 # Mechanical News
 
-Mechanical News is an application framework that scrapes and saves the full text of online news articles to a database for social science research purposes.
+Mechanical News is an application framework that scrapes and saves the full text of online news articles to a database for social science research.
 
-Mechanical News it built on top of [Scrapy](https://scrapy.org/) and [Flask](http://flask.pocoo.org/), which lets you write web scrapers that retrieve news articles (using Scrapy), store them in the database, and then connect to a RESTful API to retrieve the articles from the database (using Flask).
+Mechanical News it built on top of [Scrapy](https://scrapy.org/) and [Flask](http://flask.pocoo.org/) and provides a high-level API to scrape and expose articles. Scrapy helps you write web scrapers that scrape news articles, which is then stored in a database. Flask then helps by exposing the articles through a RESTful API where you can easily retrieve them.
 
-You run Mechanical News on your own server. The users (i.e., researchers) instead use an R library or Python package to access the articles in a [tidy data](https://en.wikipedia.org/wiki/Tidy_data) format directly from the API. The researcher doesn't need to know anything about how Mechanical News works.
+The users (i.e., researchers) use an R library or Python package to retrieve the articles in a [tidy data](https://en.wikipedia.org/wiki/Tidy_data) format directly from the API.  You run Mechanical News on your own server. The users does not need to know anything about Mechanical News, other than the package itself.
 
 ## Features
 
-- Build your own Scrapy scraper (or use an existing scraper from the library)
-- Extract information from news articles
+- Extract information from news articles using an existing scraper (or build your own)
 - Store full text news articles to a database
 - Run in different modes:
    - Scrape articles from news sites continuously (e.g., every day)
    - Scrape articles from specific URLs
+- Expose articles via API, making them available for students or collaborators with an API key
 
 ## Extracted information from news articles
 
@@ -43,7 +43,7 @@ Metadata
 
 ## Overview of the architecture
 
-<img src="architecture.png" width="50%" alt="Overview of the architecture of Mechanical News">
+<img src="architecture.png" width="70%" alt="Overview of the architecture of Mechanical News">
 
 ## Install
 
@@ -67,22 +67,22 @@ Mechanical News have been tested on Windows 10, Red Hat 7.6, and Ubuntu 18.
 
 ## Quick start
 
-Scrape all news articles from the news frontpages using all available spiders in the `/spiders` directory by running this from the project path:
+Scrape all news articles from the news frontpages using all available spiders in the [`spiders` directory](mechanicalnews/spiders/README.md) by running this from the project path:
 
 ```bash 
 $ python run.py --crawl
 ```
 
-Scrape all news articles from the frontpage of a specific site (`bbc` is the name of the spider):
+Scrape all news articles from the frontpage of a specific site (`aftonbladet` is the name of the spider):
 
 ```bash 
-$ python run.py --crawl bbc
+$ python run.py --crawl aftonbladet
 ```
 
 Scrape the news article content from a specific URL:
 
 ```bash 
-$ python run.py --url https://www.bbc.com/XXX
+$ python run.py --url https://www.aftonbladet.se/kultur/a/BRoWvQ/sa-kan-putin-bli-kvar-vid-makten
 ```
 
 ## Available spiders
@@ -93,7 +93,7 @@ Show all spiders you have installed:
 $ python run.py --list
 ```
 
-This will list all spiders in your [`/spiders`](mechanicalnews/spiders/README.md) directory. A spider is responsible for scraping a news site.
+This will list all spiders in your [`spiders` directory](mechanicalnews/spiders/README.md). A spider is responsible for scraping a news site.
 
 ## Documentation
 

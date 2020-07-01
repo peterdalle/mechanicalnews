@@ -181,63 +181,74 @@ class MySQLPipeline(object):
             An ArticleItem with the extracted information from a news article.
         """
         # Get ID of the URL (create URL if it doesn't exists).
-        url_id, is_new_url = self._create_or_get_url_id_from_url(item["url"])
-        item["parent_id"] = 0
-        has_changed_content = False
-        paywalled = " (paywall) " if item["is_paywalled"] else " "
-
-        if is_new_url:
-            # URL is new, save article.
-            insert_article = True
-        else:
-            # URL already exists in database, check if article exists.
-            article_checksum = self._get_article_checksum_by_url_id(url_id)
-            if article_checksum:
-                # Article exists. Has the content of article changed compared
-                # to the latest version?
-                current_checksum = self._compute_article_checksum(item)
-                article_id = article_checksum["article_id"]
-                old_checksum = article_checksum["checksum"]
-                has_changed_content = (current_checksum != old_checksum)
-                if has_changed_content:
-                    # Changes detected.
-                    self.spider.logger.info("Changes found #{}{}<{}>".format(
-                        article_id, paywalled, item["url"]))
-                    item["parent_id"] = article_id
-                    insert_article = True
-                else:
-                    # No changes detected.
-                    self.spider.logger.info(
-                            "Skipped #{} no changes{}<{}>".format(
-                                article_id, paywalled, item["url"]))
-                    insert_article = False
-            else:
-                # Article new, save article.
-                insert_article = True
-
-        if insert_article:
-            # Save article to database, plus related metadata.
-            article_id = self.save_article_and_get_id(item, url_id)
-            self.save_article_images(item, article_id)
-            self.save_article_links(item, article_id)
-            self.save_article_metadata(item, article_id)
-            self.save_article_http_headers(item, article_id)
-            self.save_article_html(item, article_id)
-            if has_changed_content:
-                self.save_log_action(LogAction.ADD_VERSION,
-                                     article_id=item["parent_id"],
-                                     item=item)
-            else:
-                self.save_log_action(LogAction.ADD_ARTICLE,
-                                     article_id=article_id,
-                                     item=item)
-            self.spider.logger.info("Saved #{}{}<{}>".format(
-                article_id, paywalled, item["url"]))
-        else:
-            # Don't save article to database, no changes detected.
-            self.save_log_action(LogAction.NO_CHANGE_SKIP,
-                                 article_id=article_id,
+        url_id, is_new = self._create_or_get_url_id_from_url(item["url"])
+        if is_new:
+            # Save completely new article.
+            article_id = self._insert_article(item, url_id)
+            self.save_log_action(LogAction.ADD_ARTICLE, article_id=article_id,
                                  item=item)
+            self.spider.logger.info("Saved #{} <{}>".format(article_id,
+                                                            item["url"]))
+        else:
+            # Existing article found: has it changed since previous scraping?
+            is_changed, parent_id = self._detect_article_changes(item, url_id)          
+            if is_changed:
+                # Changes found: save new version.
+                article_id = self._insert_article(item, url_id)
+                self.save_log_action(LogAction.ADD_VERSION, 
+                                     article_id=parent_id, item=item)
+                self.spider.logger.info("Saved changes #{} <{}>".format(
+                                        article_id, item["url"]))
+            else:
+                # No changes found, don't save.
+                self.save_log_action(LogAction.NO_CHANGE_SKIP,
+                                    article_id=parent_id,
+                                    item=item)
+
+    def _detect_article_changes(self, item: ArticleItem, url_id: int) -> tuple:
+        """Check whether the content of an existing has changed.
+
+        The comparison is done against the last saved version.
+
+        Parameters
+        ----------
+        item : items.ArticleItem
+            An ArticleItem with the extracted information from a news article.
+        url_id : int
+            ID to an existing URL.
+
+        Returns
+        -------
+        tuple
+            Returns a tuple (bool, int) that indicates whether the content
+            has changed (bool), and the ID of the previous article (int).
+            If no article is found, the article ID of `None` is returned.
+        """
+        new_checksum = self._compute_article_checksum(item)
+        old_article = self._get_article_checksum_by_url_id(url_id)
+        old_checksum = old_article["checksum"] if old_article else None
+        has_changed = (new_checksum != old_checksum)
+        parent_id = old_article["article_id"] if old_article else None
+        return has_changed, parent_id
+
+    def _insert_article(self, item: ArticleItem, url_id: int) -> int:
+        """Insert article to database, plus related metadata.
+
+        Parameters
+        ----------
+        item : items.ArticleItem
+            An ArticleItem with the extracted information from a news article.
+        url_id : int
+            ID to an existing URL.
+        """
+        article_id = self.save_article_and_get_id(item, url_id)
+        self.save_article_images(item, article_id)
+        self.save_article_links(item, article_id)
+        self.save_article_metadata(item, article_id)
+        self.save_article_http_headers(item, article_id)
+        self.save_article_html(item, article_id)
+        self.save_html_file(item, article_id)
+        return article_id
 
     def _create_or_get_url_id_from_url(self, url: str) -> tuple:
         """Get URL ID by URL.
@@ -317,17 +328,18 @@ class MySQLPipeline(object):
     def _get_article_checksum_by_url_id(self, url_id: int) -> dict:
         """Get article checksum by article URL ID.
 
-        Gets the checksum for the latest version of the article.
+        Gets the checksum for the last saved version of the article.
 
         Parameters
         ----------
         url_id : int
-            An ID to an existing URL.
+            ID to an existing URL.
 
         Returns
         -------
         dict
-            Returns a dict with the keys "article_id" and "checksum".
+            Returns a dict with the keys "article_id" and "checksum". Returns
+            None if no article is found.
         """
         self.cur.execute("SELECT id, checksum FROM articles" +
                          " WHERE url_id = %s ORDER BY id DESC LIMIT 1",
@@ -378,7 +390,7 @@ class MySQLPipeline(object):
         item : items.ArticleItem
             An ArticleItem with the extracted information from a news article.
         url_id : int
-            An ID to an existing URL.
+            ID to an existing URL.
 
         Returns
         -------
@@ -451,7 +463,7 @@ class MySQLPipeline(object):
         item : items.ArticleItem
             An ArticleItem with the extracted information from a news article.
         article_id : int
-            An ID to an existing article.
+            ID to an existing article.
         """
         if item["links"] and article_id:
             for link in item["links"]:
@@ -471,7 +483,7 @@ class MySQLPipeline(object):
         item : items.ArticleItem
             An ArticleItem with the extracted information from a news article.
         article_id : int
-            An ID to an existing article.
+            ID to an existing article.
         """
         if item["images"] and article_id:
             for image in item["images"]:
@@ -491,7 +503,7 @@ class MySQLPipeline(object):
         item : items.ArticleItem
             An ArticleItem with the extracted information from a news article.
         article_id : int
-            An ID to an existing article.
+            ID to an existing article.
         """
         if item["response_headers"] and article_id:
             for header in item["response_headers"]:
@@ -511,7 +523,7 @@ class MySQLPipeline(object):
         item : items.ArticleItem
             An ArticleItem with the extracted information from a news article.
         article_id : int
-            An ID to an existing article.
+            ID to an existing article.
         """
         if item["metadata"] and article_id:
             for meta in item["metadata"]:
@@ -536,7 +548,7 @@ class MySQLPipeline(object):
         item : items.ArticleItem
             An ArticleItem with the extracted information from a news article.
         article_id : int
-            An ID to an existing article.
+            ID to an existing article.
         """
         if not article_id:
             return
@@ -554,6 +566,21 @@ class MySQLPipeline(object):
                 self.conn.commit()
             except mysql.connector.errors.DataError as err:
                 self.spider.logger.warn("save_article_html(): {}".format(err))
+
+    def save_html_file(self, item: ArticleItem, article_id: int):
+        """Save body HTML to a file.
+
+        This is useful for retrieving article metadata later on, without
+        scraping the article again. The filename convention is
+        `article_id.html`, where `article_id` corresponds to the database ID.
+
+        Parameters
+        ----------
+        item : items.ArticleItem
+            An ArticleItem with the extracted information from a news article.
+        article_id : int
+            ID to an existing article.
+        """
         if AppConfig.HTML_FILES_DIRECTORY and item["response_html"]:
             # Save copy of HTML in file system.
             filename = f"{AppConfig.HTML_FILES_DIRECTORY}/{article_id}.html"
