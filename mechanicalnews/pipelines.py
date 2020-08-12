@@ -8,7 +8,7 @@ import mysql.connector
 from scrapy.crawler import Crawler
 from scrapy.spiders import Spider
 from mechanicalnews.items import FrontpageItem, ArticleItem, LogAction
-from mechanicalnews.core import SourceManager
+from mechanicalnews.sources import SourceManager
 from mechanicalnews.utils import TextUtils, WebUtils
 from mechanicalnews.settings import AppConfig
 

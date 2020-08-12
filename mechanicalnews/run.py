@@ -22,6 +22,9 @@ if __name__ == "__main__":
         "--crawl", dest="spider", nargs="*", required=False,
         help="run specific spiders (leave empty to run all)")
     parser.add_argument(
+        "--domain", dest="domain", nargs="+",
+        help="crawl specific domain(s)")
+    parser.add_argument(
         "--url", dest="url", nargs="+",
         help="crawl specific URL(s)")
     parser.add_argument(
@@ -52,6 +55,14 @@ if __name__ == "__main__":
                 print("No errors found in {} spider(s).".format(spider_count))
             except ValueError as err:
                 print("Error found in spider: {}".format(err))
+        elif args.domain:
+            print("Crawling {} domain(s)...".format(len(args.domain)))
+            try:
+                MechanicalNews.crawl_domains(domains=args.domain,
+                                             debug=args.debug_mode,
+                                             ignore_errors=args.force)
+            except MechanicalNewsError as err:
+                print("Error:", err)
         elif args.spider or args.spider == []:
             if len(args.spider) == 0:
                 print("Starting all spiders...")

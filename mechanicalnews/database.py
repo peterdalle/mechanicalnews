@@ -86,8 +86,7 @@ class MySqlDatabase():
 
     @staticmethod
     def is_installed():
-        """Checks whether database is installed using the database settings
-        from settings file.
+        """Checks whether database exists (i.e., is installed).
 
         Returns
         -------
@@ -121,7 +120,6 @@ class MySqlDatabase():
             self.cur.close()
         if self.conn:
             self.conn.close()
-            self.conn
 
     def execute(self, query: str, params=None):
         """Execute a SQL query that does not return any value.

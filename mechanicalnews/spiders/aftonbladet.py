@@ -143,7 +143,7 @@ class AftonbladetSpider(BaseArticleSpider):
             "- Aftonbladet.se",
         ]
         title = self.response.css("title::text").get(default="")
-        title = self._remove_strings(title, parts_to_remove)
+        title = TextUtils.remove_strings(title, parts_to_remove)
         return title
 
     def extract_headline(self) -> str:
@@ -201,14 +201,14 @@ class AftonbladetSpider(BaseArticleSpider):
             "//*[contains(concat(' ', @class, ' '), ' _3aoyk ')]" +
             "//time[@itemprop='datePublished']//@datetime").get()
         if dt:
-            return self.parse_date(dt)
+            return DateUtils.parse_date(dt)
         dt = self.response.css("._2j7q7 time::attr(datetime)").getall()
         if dt and len(dt) > 2:
             pub = dt[0]
             if pub:
-                return self.parse_date(pub)
+                return DateUtils.parse_date(pub)
         if dt:
-            return self.parse_date(dt)
+            return DateUtils.parse_date(dt)
         return None
 
     def extract_modified_date(self) -> datetime:
@@ -220,14 +220,14 @@ class AftonbladetSpider(BaseArticleSpider):
             "//*[contains(concat(' ', @class, ' ')," +
             " ' _3aoyk ')]//time[@itemprop='dateModified']//@datetime").get()
         if dt:
-            return self.parse_date(dt)
+            return DateUtils.parse_date(dt)
         dt = self.response.css("._2j7q7 time::attr(datetime)").getall()
         if dt and len(dt) > 2:
             mod = dt[1]
             if mod:
-                return self.parse_date(mod)
+                return DateUtils.parse_date(mod)
             else:
-                return self.parse_date(dt)
+                return DateUtils.parse_date(dt)
         return None
 
     def extract_is_paywalled(self) -> bool:

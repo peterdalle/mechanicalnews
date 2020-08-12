@@ -5,9 +5,6 @@ There is also a class for article information extraction.
 """
 import datetime
 import json
-import lxml
-import dateparser
-import extruct
 from abc import abstractmethod
 from mechanicalnews.items import FrontpageItem, ArticleItem, PageType, ArticleGenre
 from mechanicalnews.settings import AppConfig
@@ -417,7 +414,11 @@ class BaseArticleSpider(CrawlSpider):
         self.response = response
         self.meta_dict = None
         self._check_item_for_errors(self.item)
-        self._set_metadata()
+        self.extractor = ArticleExtractor.from_response(response)
+        if self.extractor.microdata:
+            self.item["metadata_raw"] = json.dumps(self.extractor.microdata)
+        self.item["metadata"] = self.extractor.get_metatags(
+                                       exclude_metatags=self.EXCLUDED_META_TAGS)
         self.item["source_id"] = self._SOURCE_ID
         self.item["url"] = response.url
         self.item["response_headers"] = response.headers
@@ -425,11 +426,13 @@ class BaseArticleSpider(CrawlSpider):
         self.item["response_html"] = str(response.body)
         self.item["referer_url"] = response.request.url
         self.item["title_raw"] = response.css("title::text").get(default="")
-        if not self.item["language"]:
-            self.item["language"] = self._extract_language()
         if self.item["body_html"]:
-            self.item["body"] = self._clean_body_text(self.item["body_html"])
-        self._set_counts()
+            self.item["body"] = TextUtils.html_to_text(self.item["body_html"])
+        if not self.item["language"]:
+            self.item["language"] = TextUtils.detect_language(
+                                                         self.item["body"],
+                                                         self.DEFAULT_LANGUAGE)
+        self._set_text_counts()
         return self.item
 
     def _check_item_for_errors(self, item: ArticleItem):
@@ -491,87 +494,7 @@ class BaseArticleSpider(CrawlSpider):
                 raise TypeError(("Key '{}' in 'item' must be of type" +
                                 " '{}'.").format(key, data_type))
 
-    def _extract_language(self) -> str:
-        """Try to detect language of text content automatically.
-
-        Uses `DEFAULT_LANGUAGE` as a fallback if language cannot be detected.
-
-        Returns
-        -------
-        str
-            Returns language in ISO 639-1 format (two letters, e.g. 'en'
-            for English). Returns a default language of the spider if no
-            language can be detected.
-        """
-        if self.item["lead"] or self.item["body"]:
-            lead = self.item["lead"] if self.item["lead"] else ""
-            body = self.item["body"] if self.item["body"] else ""
-            text = (lead + " " + body).strip()
-            lang = TextUtils.detect_language(text, min_length=70)
-            if lang:
-                return lang
-        return self.DEFAULT_LANGUAGE
-
-    def _extract_all_metadata_as_dict(self) -> dict:
-        """Extract and get all metadata on web page.
-
-        Returns
-        -------
-        dict
-            Returns a dict with all metadata. If no metadata is found, an empty
-            dict is returned.
-        """
-        if not self.response.body:
-            return {}
-        try:
-            return extruct.extract(self.response.body)
-        except lxml.etree.ParserError as e:
-            self.logger.warning(
-                "Error parsing metadata: {} <{}>".format(e, self.response.url))
-        except json.decoder.JSONDecodeError as e:
-            self.logger.warning(
-                "Error parsing metadata: {} <{}>".format(e, self.response.url))
-        return {}
-
-    def _extract_all_metatags_as_list(self) -> list:
-        """Extract and get all <meta> tags on web page.
-
-        Returns
-        -------
-        list
-            Returns a list of dicts with metadata.
-        """
-        if self.meta_dict:
-            return self.meta_dict
-        if not self.response.css("meta"):
-            return None
-        tags = []
-        for meta in self.response.css("meta"):
-            name = meta.css("::attr(name)").get(default="")
-            prop = meta.css("::attr(property)").get(default="")
-            content = meta.css("::attr(content)").get(default="")
-            name = name if name != "" else prop
-            is_prop = 0 if prop == "" else 1
-            if not self._is_excluded_meta_name(name):
-                tags.append({
-                    "name": name,
-                    "content": content,
-                    "is_property": is_prop,
-                })
-        self.meta_dict = tags
-        return tags
-
-    def _set_metadata(self):
-        """Extract all JSON-LD, Microdata, Microformat, OpenGraph, RDFa,
-        and <meta> tags that can be found on the web page.
-
-        Updates `self.item["metadata"]` and `self.item["metadata_raw"]`."""
-        metadata = self._extract_all_metadata_as_dict()
-        if metadata:
-            self.item["metadata_raw"] = json.dumps(metadata)
-        self.item["metadata"] = self._extract_all_metatags_as_list()
-
-    def _set_counts(self):
+    def _set_text_counts(self):
         """Count the character length and word length of lead and body, as well
         as number of images and videos.
 
@@ -585,109 +508,3 @@ class BaseArticleSpider(CrawlSpider):
             self.item["lead_words"] = TextUtils.count_words(self.item["lead"])
         if self.item["image_urls"]:
             self.item["num_images"] = len(self.item["image_urls"])
-
-    def _clean_body_text(self, text: str) -> str:
-        """Clean body text: remove HTML tags and unnecessary white space.
-
-        Parameters
-        ----------
-        text : str
-            A text string with HTML.
-
-        Returns
-        -------
-        str
-            Returns a string without HTML and without unnecessary white space.
-        """
-        if not text:
-            return ""
-        text = TextUtils.remove_tag_and_content(text, tag="script")
-        text = TextUtils.remove_tag_and_content(text, tag="style")
-        text = TextUtils.strip_html_tags(text)
-        text = TextUtils.remove_white_space(text)
-        return text
-
-    def parse_date(self, date_string: str,
-                   date_formats=None, languages=None) -> datetime.datetime:
-        """Parse publication dates.
-
-        Parameters
-        ----------
-        date_string : str
-            A text string with a date.
-        date_formats : list
-            A list with text strings with possible date formats that is passed
-            on to dateparser.parse().
-        languages : list
-            A list with text strings with languages that is passed on to
-            dateparser.parse().
-
-        Returns
-        -------
-        datetime
-            Returns Python datetime object if the date/time could be parsed,
-            otherwise None is returned.
-        """
-        if not date_string:
-            return None
-        # Ttry ordinary date.
-        try:
-            dt = dateparser.parse(date_string)
-            if dt:
-                return dt
-        except ValueError:
-            pass
-        except TypeError:
-            pass
-        # Try more interpretative.
-        try:
-            dt = dateparser.parse(date_string, date_formats=date_formats,
-                                  languages=languages)
-            if dt:
-                return dt
-        except ValueError:
-            pass
-        except TypeError:
-            pass
-        return None
-
-    def _remove_strings(self, text: str, remove_strings: str) -> str:
-        """Remove unnecessary characters from text string.
-
-        Parameters
-        ----------
-        text : str
-            A text to be cleaned.
-        remove_strings : list
-            A list with text strings that should be removed from the text.
-
-        Returns
-        -------
-        str
-            Returns a cleaned text string.
-        """
-        if text:
-            for remove in remove_strings:
-                if remove in text:
-                    text = text.replace(remove, "").strip()
-        return text
-
-    def _is_excluded_meta_name(self, meta_name: str) -> bool:
-        """Should <meta> tag be excluded?
-
-        Checks both meta name and meta property HTML tags.
-
-        Parameters
-        ----------
-        meta_name : str
-            Name of the HTML meta tag.
-
-        Returns
-        -------
-        bool
-            Returns True if the meta tag should be excluded, otherwise False.
-        """
-        if meta_name.lower() in self.EXCLUDED_META_TAGS:
-            return True
-        else:
-            return False

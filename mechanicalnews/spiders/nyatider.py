@@ -145,7 +145,7 @@ class NyaTiderSpider(BaseArticleSpider):
             "| Nya Tider",
         ]
         title = self.response.css("title::text").get(default="")
-        return self._remove_strings(title, parts_to_remove)
+        return TextUtils.remove_strings(title, parts_to_remove)
 
     def extract_authors(self) -> list:
         """Extract authors and turn it into a comma-separated list."""

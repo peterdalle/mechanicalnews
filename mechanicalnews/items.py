@@ -405,7 +405,7 @@ class SourceItem():
                          guid=row["guid"])
         return cls
 
-    def get_json(self, iso_date=True):
+    def get_json(self, iso_date=True) -> dict:
         """Get source as a dict optimized for JSON API.
 
         Parameters
@@ -428,10 +428,10 @@ class SourceItem():
                 }
         return data
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return representation of source."""
         return "{} (#{} <{}>)".format(self.name, self.source_id, self.url)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return source as a JSON string."""
         return self.get_json()

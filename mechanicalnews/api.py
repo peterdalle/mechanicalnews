@@ -7,14 +7,18 @@ import datetime
 import os
 import sys
 import time
+import string
+import random
 from functools import wraps
 from flask import Flask, jsonify, request, make_response, redirect
 from flask import send_from_directory
 from flask_restful import Resource, Api
 from mechanicalnews.settings import AppConfig
-from mechanicalnews.core import UserManager, SourceManager, ArticleManager
-from mechanicalnews.core import ArticleFilter, MySqlDatabase
+from mechanicalnews.articles import ArticleManager, ArticleFilter
+from mechanicalnews.sources import SourceManager
+from mechanicalnews.database import MySqlDatabase
 from mechanicalnews.stats import SummaryStats
+from mechanicalnews.users import UserManager
 
 
 API_VERSION = "1.0"

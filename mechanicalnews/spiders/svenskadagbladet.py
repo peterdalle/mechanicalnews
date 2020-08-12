@@ -196,7 +196,7 @@ class SvenskaDagbladetSpider(BaseArticleSpider):
             "- SVD",
         ]
         title = self.response.css("title::text").get(default="")
-        return self._remove_strings(title, parts_to_remove)
+        return TextUtils.remove_strings(title, parts_to_remove)
 
     def extract_author(self) -> list:
         """Extract authors and turn it into a comma-separated list."""
@@ -215,14 +215,14 @@ class SvenskaDagbladetSpider(BaseArticleSpider):
         """Extract publish date."""
         dt = self.response.css(
            ".Meta-part--published > time::attr(data-datetime)").get(default="")
-        return self.parse_date(dt, languages=["sv"],
+        return DateUtils.parse_date(dt, languages=["sv"],
                                date_formats=["%d %B %Y %H.%M"])
 
     def extract_modified_date(self) -> datetime:
         """Extract modified date."""
         dt = self.response.css(
             ".Meta-part--updated > time::attr(data-datetime)").get(default="")
-        return self.parse_date(dt)
+        return DateUtils.parse_date(dt)
 
     def extract_images(self) -> list:
         """Extract images."""

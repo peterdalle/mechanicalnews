@@ -241,7 +241,7 @@ class DagensNyheterSpider(BaseArticleSpider):
             "| Dagens Nyheter",
         ]
         title = self.response.css("title::text").get(default="")
-        return self._remove_strings(title, parts_to_remove)
+        return TextUtils.remove_strings(title, parts_to_remove)
 
     def extract_authors(self) -> list:
         """Extract authors and turn it into a comma-separated list."""
@@ -263,7 +263,7 @@ class DagensNyheterSpider(BaseArticleSpider):
             return dt
         dt = self.response.css(
             "time.time--published::attr(datetime)").get(default="")
-        dt = self.parse_date(dt, languages=["sv"],
+        dt = DateUtils.parse_date(dt, languages=["sv"],
                              date_formats=["%d %B %Y %H.%M"])
         return dt
 
@@ -274,7 +274,7 @@ class DagensNyheterSpider(BaseArticleSpider):
             return dt
         dt = self.response.css(
             "time.time--updated::attr(datetime)").get(default="")
-        return self.parse_date(dt)
+        return DateUtils.parse_date(dt)
 
     def extract_images(self) -> list:
         """Extract images."""

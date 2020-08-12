@@ -190,7 +190,7 @@ class MechanicalNews(object):
             Whether or not to get debug settings.
         """
         settings = MechanicalNews.get_crawler_settings(debug=debug)
-        for i, key in enumerate(settings.keys()):
+        for _, key in enumerate(settings.keys()):
             if key in ["FTP_PASSWORD", "MAIL_PASS", "TELNETCONSOLE_PASSWORD"]:
                 print(key, ": ", ("*" * 30), " [Password masked]", sep="")
             else:
@@ -378,6 +378,22 @@ class MechanicalNews(object):
         #             input='inputargument', start_urls = urls)
         # process.start()
         # process.stop()
+
+    @staticmethod
+    def crawl_domains(domains: list, debug=False, ignore_errors=False):
+        """Run corresponding spiders from a list of domains.
+
+        Parameters
+        ----------
+        domains : list
+            A list of domains (as strings) that you want to crawl and scrape.
+        debug : bool
+            Whether or not to use debug settings.
+        ignore_errors : bool
+            Whether or not to ignore errors before starting the crawl process,
+            such as checks whether Splash is running.
+        """
+        raise NotImplementedError("Crawling by domain is not implemented yet.")
 
     @staticmethod
     def find_spiders(urls: list) -> list:

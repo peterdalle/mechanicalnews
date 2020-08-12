@@ -154,7 +154,7 @@ class SverigesTelevisionSpider(BaseArticleSpider):
             "- SVT Sport",
             ]
         title = self.response.css("title::text").get(default="")
-        return self._remove_strings(title, parts_to_remove)
+        return TextUtils.remove_strings(title, parts_to_remove)
 
     def extract_authors(self) -> list:
         """Extract authors and turn it into a comma-separated list."""
@@ -166,7 +166,7 @@ class SverigesTelevisionSpider(BaseArticleSpider):
         """Extract publish date."""
         dt = self.response.css(
             ".nyh_article__date-timestamp::attr(datetime)").get(default="")
-        dt = self.parse_date(dt, languages=["sv"],
+        dt = DateUtils.parse_date(dt, languages=["sv"],
                              date_formats=["%d %B %Y %H.%M"])
         if dt:
             return dt
@@ -180,11 +180,11 @@ class SverigesTelevisionSpider(BaseArticleSpider):
         dt = self.response.css(
             ".nyh_article__date-timestamp::attr(datetime)").getall()
         if len(dt) == 2:
-            edited = self.parse_date(dt[-1])
+            edited = DateUtils.parse_date(dt[-1])
             if edited:
                 return edited
             else:
-                edited = self.parse_date(dt, languages=["sv"],
+                edited = DateUtils.parse_date(dt, languages=["sv"],
                                          date_formats=["%d %B %Y %H.%M"])
                 if edited:
                     return edited

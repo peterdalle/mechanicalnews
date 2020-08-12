@@ -1,19 +1,17 @@
 # Mechanical News
 
-Mechanical News is an application framework that scrapes and saves the full text of online news articles to a database for social science research.
+Mechanical News is a web server framework built on top of [Scrapy](https://scrapy.org/) that scrapes and saves online news articles (full text) to a database for social science research.
 
-Mechanical News it built on top of [Scrapy](https://scrapy.org/) and [Flask](http://flask.pocoo.org/) and provides a high-level API to scrape and expose articles. Scrapy helps you write web scrapers that scrape news articles, which is then stored in a database. Flask then helps by exposing the articles through a RESTful API where you can easily retrieve them.
-
-The users (i.e., researchers) use an R library or Python package to retrieve the articles in a [tidy data](https://en.wikipedia.org/wiki/Tidy_data) format directly from the API.  You run Mechanical News on your own server. The users does not need to know anything about Mechanical News, other than the package itself.
+The articles in the database are then accessible via a RESTful API built with [Flask](http://flask.pocoo.org/), easily retrieved with a R library or Python package in [tidy data](https://en.wikipedia.org/wiki/Tidy_data) format.
 
 ## Features
 
 - Extract information from news articles using an existing scraper (or build your own)
 - Store full text news articles to a database
-- Run in different modes:
+- Two modes:
    - Scrape articles from news sites continuously (e.g., every day)
    - Scrape articles from specific URLs
-- Expose articles via API, making them available for students or collaborators with an API key
+- Retrieve articles via an API using an API key (for students or collaborators)
 
 ## Extracted information from news articles
 
@@ -27,27 +25,30 @@ News content
 
 Metadata
 
-- authors
+- author(s)
 - date of publication
 - date of modification
-- news section (e.g., World, Sports, Tech)
+- news section (e.g., Economy, Sports, Tech)
 - tags
 - categories
 - language
-- type of page (e.g., text article, video, sound)
-- news genre (e.g., news, sports, opinion, entertainment)
-- whether the article is behind a paywall
-- HTTP response headers
-- metadata tags (e.g., OpenGraph, microformats)
-- when the article was present on the frontpage
+- content type (e.g., text, video, sound)
+- news genre (e.g., news, opinion, entertainment)
+- paywall
+- optional:
+   - HTTP response headers
+   - metadata tags (e.g., OpenGraph, microformats)
+   - when the article was present on the frontpage
 
-## Overview of the architecture
+## Architecture
 
 <img src="architecture.png" width="70%" alt="Overview of the architecture of Mechanical News">
 
 ## Install
 
-*Not yet available*
+```
+Not yet available
+```
 
 <!--
 
@@ -62,8 +63,6 @@ Requirements:
 - Python 3.6+
 - MySQL 5.6+
 - Docker
-
-Mechanical News have been tested on Windows 10, Red Hat 7.6, and Ubuntu 18.
 
 ## Quick start
 

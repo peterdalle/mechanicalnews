@@ -6,9 +6,11 @@ and author, as well as other structured metadata.
 import datetime
 import urllib
 import dateparser
+import lxml
 import extruct
 import parsel
 from scrapy.http import Response
+from mechanicalnews.utils import TextUtils
 
 
 class ArticleExtractorParserError(BaseException):
@@ -61,9 +63,10 @@ class ArticleExtractor():
         """
         self.html = html
         self.microdata = None
+        self._metatags = []
         self._url = url
-        self._raise_exceptions = raise_exceptions
         self._errors = []
+        self._raise_exceptions = raise_exceptions
         self._authors = None
         self._body = None
         self._description = None
@@ -86,7 +89,7 @@ class ArticleExtractor():
                 self._url = self.url
 
     @classmethod
-    def from_response(cls, response: Response, url=None, parse=True,
+    def from_response(cls, response: Response, parse=True, 
                       raise_exceptions=False):
         """Create an instance from a Scrapy response object.
 
@@ -240,6 +243,33 @@ class ArticleExtractor():
         return len(self._errors) > 0
 
     @staticmethod
+    def make_absolute_urls(base: str, href_list: list) -> list:
+        """Make relative URLs to absolute URLs.
+
+        Parameters
+        ----------
+        base : str
+            The base of the URL (e.g., https://example.net).
+        href_list : list
+            A list with relative URLs as text strings
+            (e.g., ['/dir1/', '/dir2/']).
+
+        Returns
+        -------
+        list
+            Returns a new list with the absolute URLs. If no URLs are found,
+            an empty list is returned.
+        """
+        if not href_list:
+            return []
+        if type(href_list) != list:
+            return TypeError("'href_list' must be a list.")
+        absolute_urls = []
+        for href in href_list:
+            absolute_urls.append(urllib.parse.urljoin(base, href))
+        return absolute_urls
+
+    @staticmethod
     def get_links(html: str, base: str, to_absolute_urls=True) -> list:
         """Extract URLs from HTML snippet.
 
@@ -269,32 +299,55 @@ class ArticleExtractor():
             return ArticleExtractor.make_absolute_urls(base, urls)
         return urls
 
-    @staticmethod
-    def make_absolute_urls(base: str, href_list: list) -> list:
-        """Make relative URLs to absolute URLs.
-
-        Parameters
-        ----------
-        base : str
-            The base of the URL (e.g., https://example.net).
-        href_list : list
-            A list with relative URLs as text strings
-            (e.g., ['/dir1/', '/dir2/']).
+    def get_metatags(self, exclude_metatags: list) -> list:
+        """Get all <meta> tags from web page.
 
         Returns
         -------
         list
-            Returns a new list with the absolute URLs. If no URLs are found,
-            an empty list is returned.
+            Returns a list of dicts with metadata, with `name`, 
+            `content`, and `is_property`.
         """
-        if not href_list:
+        if self._metatags:
+            return self._metatags
+        if not self.html:
             return []
-        if type(href_list) != list:
-            return TypeError("'href_list' must be a list.")
-        absolute_urls = []
-        for href in href_list:
-            absolute_urls.append(urllib.parse.urljoin(base, href))
-        return absolute_urls
+        selector = parsel.Selector(text=self.html)
+        tags = []
+        for meta in selector.css("meta"):
+            name = meta.css("::attr(name)").get(default="")
+            prop = meta.css("::attr(property)").get(default="")
+            content = meta.css("::attr(content)").get(default="")
+            name = name if name != "" else prop
+            is_prop = 0 if prop == "" else 1
+            if not self._is_excluded_metatag(name, exclude_metatags):
+                tags.append({
+                    "name": name,
+                    "content": content,
+                    "is_property": is_prop,
+                })
+        self._metatags = tags
+        return tags
+
+    def _is_excluded_metatag(self, metatag: str, exclude_metatags: list) -> bool:
+        """Should <meta> tag be excluded?
+
+        Checks both meta name and meta property HTML tags.
+
+        Parameters
+        ----------
+        meta_name : str
+            Name of the HTML meta tag.
+
+        Returns
+        -------
+        bool
+            Returns True if the meta tag should be excluded, otherwise False.
+        """
+        if metatag.lower() in exclude_metatags:
+            return True
+        else:
+            return False
 
     @property
     def pagetype(self) -> str:

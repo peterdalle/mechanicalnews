@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-Utils module for text transformations, printing to screen, and handling files.
+Utils module for text/HTML transformations, printing to screen, and handling
+files and dates.
 """
 import datetime
 import html.parser
+import dateparser
 import json
 import langdetect
 import hashlib
@@ -14,7 +16,7 @@ from bs4 import BeautifulSoup
 
 
 class TextUtils():
-    """Various text transformation and extraction utilities."""
+    """Various text and HTML transformation and extraction utilities."""
 
     @staticmethod
     def is_number(value: object) -> bool:
@@ -65,7 +67,7 @@ class TextUtils():
         return 0
 
     @staticmethod
-    def detect_language(text: str, min_length=5) -> str:
+    def detect_language(text: str, min_length=20, fallback=None) -> str:
         """Detect language of text string.
 
         Parameters
@@ -75,15 +77,20 @@ class TextUtils():
         min_length : int
             Minimum number of characters of the text that is needeed
             for automatic detection of language (the longer the better).
+        fallback : str
+            Fallback language (ISO 639-1) if language couldn't be detected.
+            Use `None` if fallback language shouldn't be used.
 
         Returns
         -------
         str
             Returns language in ISO 639-1 format (e.g., `en` for English).
         """
-        if text and len(text) >= min_length:
+        if not text:
+            return fallback
+        if len(text) >= min_length:
             return langdetect.detect(text)
-        return ""
+        return fallback
 
     class MLStripper(html.parser.HTMLParser):
         """"Strip HTML tags from a text string."""
@@ -329,6 +336,51 @@ class TextUtils():
             return default
         return default
 
+    @staticmethod
+    def html_to_text(html: str) -> str:
+        """Convert HTML to plain text by removing HTML tags and unnecessary
+        white space.
+
+        Parameters
+        ----------
+        HTML : str
+            A text string with HTML.
+
+        Returns
+        -------
+        str
+            Returns a string without HTML and without unnecessary white space.
+        """
+        if not html:
+            return ""
+        html = TextUtils.remove_tag_and_content(html, tag="script")
+        html = TextUtils.remove_tag_and_content(html, tag="style")
+        html = TextUtils.strip_html_tags(html)
+        html = TextUtils.remove_white_space(html)
+        return html
+
+    @staticmethod
+    def remove_strings(text: str, remove_strings: list) -> str:
+        """Remove unnecessary characters from text string.
+
+        Parameters
+        ----------
+        text : str
+            A text to be cleaned.
+        remove_strings : list
+            A list with text strings that should be removed from the text.
+
+        Returns
+        -------
+        str
+            Returns a cleaned text string.
+        """
+        if text:
+            for remove in remove_strings:
+                if remove in text:
+                    text = text.replace(remove, "").strip()
+        return text
+
 
 class FileUtils():
     """Various file utilities for getting file size of directories,
@@ -447,6 +499,50 @@ class DateUtils():
                 return None
         return None
 
+    @staticmethod
+    def parse_date(date_string: str, date_formats=None, 
+                   languages=None) -> datetime.datetime:
+        """Parse dates.
+
+        Parameters
+        ----------
+        date_string : str
+            A text string with a date.
+        date_formats : list
+            A list with text strings with possible date formats that is passed
+            on to dateparser.parse().
+        languages : list
+            A list with text strings with languages that is passed on to
+            dateparser.parse().
+
+        Returns
+        -------
+        datetime
+            Returns Python datetime object if the date/time could be parsed,
+            otherwise None is returned.
+        """
+        if not date_string:
+            return None
+        # Ttry ordinary date.
+        try:
+            dt = dateparser.parse(date_string)
+            if dt:
+                return dt
+        except ValueError:
+            pass
+        except TypeError:
+            pass
+        # Try more interpretative.
+        try:
+            dt = dateparser.parse(date_string, date_formats=date_formats,
+                                  languages=languages)
+            if dt:
+                return dt
+        except ValueError:
+            pass
+        except TypeError:
+            pass
+        return None
 
 class PrettyPrint():
     """Various utils for printing data to screen in a way that doesn't
