@@ -4,7 +4,7 @@ Module for summary statistics of already collected articles.
 """
 from mechanicalnews.utils import DateUtils, FileUtils
 from mechanicalnews.settings import AppConfig
-from mechanicalnews.database import MySqlDatabase
+from mechanicalnews.storage import MySqlDatabase
 
 
 class SummaryStats():

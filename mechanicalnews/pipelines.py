@@ -11,7 +11,7 @@ from mechanicalnews.items import FrontpageItem, ArticleItem, LogAction
 from mechanicalnews.sources import SourceManager
 from mechanicalnews.utils import TextUtils, WebUtils
 from mechanicalnews.settings import AppConfig
-from mechanicalnews.files import StaticFiles
+from mechanicalnews.storage import StaticFiles
 
 class MySQLPipeline(object):
     """Pipeline to save scraped items to MySQL/MariaDB."""

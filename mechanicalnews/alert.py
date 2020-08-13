@@ -3,7 +3,7 @@
 Module for generating alerts about too many missing values.
 """
 from mechanicalnews.stats import SummaryStats
-from mechanicalnews.database import MySqlDatabase
+from mechanicalnews.storage import MySqlDatabase
 
 
 class Alert():

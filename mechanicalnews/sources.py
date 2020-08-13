@@ -8,7 +8,7 @@ import hashlib
 from mechanicalnews.utils import DateUtils
 from mechanicalnews.items import LogAction, ArticleItem, SourceItem
 from mechanicalnews.settings import AppConfig
-from mechanicalnews.database import MySqlDatabase
+from mechanicalnews.storage import MySqlDatabase
 
 
 class Sources():

@@ -16,10 +16,9 @@ from flask_restful import Resource, Api
 from mechanicalnews.settings import AppConfig
 from mechanicalnews.articles import Articles, ArticleFilter
 from mechanicalnews.sources import Sources
-from mechanicalnews.database import MySqlDatabase
+from mechanicalnews.storage import MySqlDatabase, StaticFiles
 from mechanicalnews.stats import SummaryStats
 from mechanicalnews.users import User
-from mechanicalnews.files import StaticFiles
 
 
 API_VERSION = "1.0"

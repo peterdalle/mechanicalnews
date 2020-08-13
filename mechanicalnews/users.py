@@ -8,7 +8,7 @@ import sys
 import time
 import string
 from mechanicalnews.settings import AppConfig
-from mechanicalnews.database import MySqlDatabase
+from mechanicalnews.storage import MySqlDatabase
 
 
 class User():
