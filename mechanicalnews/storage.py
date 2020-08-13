@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Module for database and file storage.
+"""
 import os
 import mysql.connector
 from mechanicalnews.settings import AppConfig
@@ -203,7 +207,7 @@ class StaticFiles():
 
     @staticmethod
     def get_html_full_filename(article_id: int) -> str:
-        return AppConfig.HTML_FILES_DIRECTORY + "/" + get_html_filename(article_id)
+        return AppConfig.HTML_FILES_DIRECTORY + "/" + StaticFiles.get_html_filename(article_id)
 
     @staticmethod
     def save_html_file(html: str, article_id: int):
@@ -220,9 +224,10 @@ class StaticFiles():
             return
         if not AppConfig.HTML_FILES_DIRECTORY:
             return
-        with open(get_html_full_filename(article_id), "w", encoding="utf8") as file:
+        filename = StaticFiles.get_html_full_filename(article_id)
+        with open(filename, "w", encoding="utf8") as file:
             file.write(html)
 
     @staticmethod
-    def read_html_file(article_id) -> str:
+    def read_html_file(article_id: int) -> str:
         raise NotImplementedError()  # TODO

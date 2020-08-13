@@ -73,34 +73,19 @@ class SummaryStats():
         db = MySqlDatabase.from_settings()
         db.open()
         num_sources = db.get_scalar("SELECT COUNT(*) value FROM sources", field="value", default=0)
-        num_urls = db.get_scalar("SELECT COUNT(*) value FROM article_urls", field="value", default=0)
+        num_urls = -1 # db.get_scalar("SELECT COUNT(*) value FROM article_urls", field="value", default=0)
         num_articles = db.get_scalar("SELECT COUNT(*) value FROM articles WHERE parent_id = 0", field="value", default=0)
-        num_versions = db.get_scalar("SELECT COUNT(*) value FROM articles WHERE parent_id != 0", field="value", default=0)
-        """num_links = self._get_scalar(
-            "SELECT COUNT(*) value FROM article_links") # TODO: Make faster
-        num_images = self._get_scalar(
-            "SELECT COUNT(*) value FROM article_images") # TODO: Make faster
-        num_metadata = self._get_scalar(
-            "SELECT COUNT(*) value FROM article_meta") # TODO: Make faster
+        num_versions = -1 # db.get_scalar("SELECT COUNT(*) value FROM articles WHERE parent_id != 0", field="value", default=0)
+        num_links = -1 # self._get_scalar("SELECT COUNT(*) value FROM article_links") # TODO: Make faster
+        num_images = -1 # self._get_scalar("SELECT COUNT(*) value FROM article_images") # TODO: Make faster
+        num_metadata = -1 #self._get_scalar("SELECT COUNT(*) value FROM article_meta") # TODO: Make faster
         # TODO: What the hell is the diffrence between num_images
         # and num_meta_images? What was I thinking? Just set it as -1 for now.
-        num_headers = self._get_scalar(
-            "SELECT COUNT(*) value FROM article_headers") # TODO: Make faster
-        num_frontpage_articles = self._get_scalar(
-            "SELECT COUNT(*) value FROM frontpage_articles") # TODO: Make fast
-        num_unique_pages = self._get_scalar(
-            "SELECT COUNT(DISTINCT checksum) value " \
-            "FROM articles WHERE parent_id = 0") # TODO: Make faster
-        num_log = self._get_scalar(
-            "SELECT COUNT(*) value FROM log")  # TODO: Make faster"""
-        num_images = -1
-        num_metadata = -1
-        num_headers = -1
-        num_frontpage_articles = -1
-        num_log = -1
-        num_unique_pages = -1
         num_meta_images = -1
-        num_links = -1
+        num_headers = -1 # self._get_scalar("SELECT COUNT(*) value FROM article_headers") # TODO: Make faster
+        num_frontpage_articles = -1 # self._get_scalar("SELECT COUNT(*) value FROM frontpage_articles") # TODO: Make fast
+        num_unique_pages = -1 # self._get_scalar("SELECT COUNT(DISTINCT checksum) value FROM articles WHERE parent_id = 0") # TODO: Make faster
+        num_log = -1 # self._get_scalar("SELECT COUNT(*) value FROM log")  # TODO: Make faster
         num_errors = -1
         earliest_published_article = db.get_scalar("SELECT MIN(published) value " +
             "FROM articles WHERE NOT ISNULL(published)",
@@ -124,19 +109,16 @@ class SummaryStats():
             "num_article_images": num_meta_images,
             "num_article_headers": num_headers,
             "num_unique_pages": num_unique_pages,
-            "earliest_published_article": DateUtils.set_iso_date(
-                earliest_published_article, iso_date=iso_date),
-            "latest_published_article": DateUtils.set_iso_date(
-                latest_published_article, iso_date=iso_date),
+            "earliest_published_article": DateUtils.set_iso_date(earliest_published_article, iso_date=iso_date),
+            "latest_published_article": DateUtils.set_iso_date(latest_published_article, iso_date=iso_date),
         }
         return data
 
     @staticmethod
     def get_source_counts():
         """Get summary statistics of articles collected per source."""
-        sql = """SELECT s.name source, COUNT(*) articles FROM articles a
-              LEFT JOIN sources s ON s.id=a.source_id GROUP BY a.source_id
-              ORDER BY COUNT(*) DESC"""
+        sql = """SELECT s.name source, COUNT(*) articles FROM articles a LEFT JOIN sources s
+                 ON s.id=a.source_id GROUP BY a.source_id ORDER BY COUNT(*) DESC"""
         with MySqlDatabase.from_settings() as db:
             return db.get_rows(sql)
 
@@ -145,8 +127,8 @@ class SummaryStats():
         """Get number of published articles per day.
 
         Returns `dict` with fields `day` and `articles`."""
-        sql = """SELECT DATE(published) a, COUNT(*) b FROM articles GROUP BY
-              DATE(published) ORDER BY published DESC"""
+        sql = """SELECT DATE(published) a, COUNT(*) b FROM articles GROUP BY DATE(published)
+                 ORDER BY published DESC"""
         db = MySqlDatabase.from_settings()
         db.open()
         db.cur.execute(sql)
@@ -170,8 +152,7 @@ class SummaryStats():
         if days_back:
             sql = """SELECT DATE(added) day, COUNT(*) articles FROM articles
             WHERE DATE(added) BETWEEN DATE_ADD(DATE(NOW()), INTERVAL -{} DAY) AND NOW()
-            GROUP BY DATE(added)
-            ORDER BY added DESC""".format(days_back)
+            GROUP BY DATE(added) ORDER BY added DESC""".format(days_back)
         else:
             sql = """SELECT DATE(added) day, COUNT(*) articles FROM articles
             GROUP BY DATE(added) ORDER BY added DESC"""
@@ -205,8 +186,7 @@ class SummaryStats():
         """Get the missing values from a number of days back in time."""
         sql = """SELECT DATE(added) added, ISNULL(published) missing, COUNT(*) articles
         FROM articles WHERE (added BETWEEN DATE_ADD(NOW(), INTERVAL -{} DAY) AND NOW())
-        GROUP BY DATE(added), ISNULL(published)
-        ORDER BY added ASC, missing ASC;""".format(days_back)
+        GROUP BY DATE(added), ISNULL(published) ORDER BY added ASC, missing ASC;""".format(days_back)
         with MySqlDatabase.from_settings() as db:
             return db.get_rows(sql)
 
@@ -215,17 +195,15 @@ class SummaryStats():
         """Get the missing values from a number of days back in time."""
         sql = """SELECT source_id, ISNULL(published) missing, COUNT(*) articles FROM articles
         WHERE (added BETWEEN DATE_ADD(NOW(), INTERVAL -{} DAY) AND NOW())
-        GROUP BY source_id, ISNULL(published)
-        ORDER BY id DESC""".format(days_back)
+        GROUP BY source_id, ISNULL(published) ORDER BY id DESC""".format(days_back)
         with MySqlDatabase.from_settings() as db:
             return db.get_rows(sql)
 
     @staticmethod
     def get_missing_text(days_back=7):
         """Get the missing text from a number of days back in time."""
-        sql = """SELECT DATE(added), COUNT(*) articles FROM articles
-        WHERE (ISNULL(published) OR ISNULL(body) OR ISNULL(`lead`))
-        AND (added BETWEEN DATE_ADD(NOW(), INTERVAL -{} DAY) AND NOW())
-        GROUP BY DATE(added)""".format(days_back)
+        sql = """SELECT DATE(added), COUNT(*) articles FROM articles WHERE (ISNULL(published)
+        OR ISNULL(body) OR ISNULL(`lead`)) AND (added BETWEEN DATE_ADD(NOW(), INTERVAL -{} DAY)
+        AND NOW()) GROUP BY DATE(added)""".format(days_back)
         with MySqlDatabase.from_settings() as db:
             return db.get_rows(sql)

@@ -61,7 +61,7 @@ class Sources():
     @staticmethod
     def register_spider(name, guid) -> int:
         """Register source GUID in database and return source ID."""
-        spider_id = SourceManager.get_id_by_guid(guid)
+        spider_id = Sources.get_id_by_guid(guid)
         if spider_id:
             return spider_id
         if not spider_id:

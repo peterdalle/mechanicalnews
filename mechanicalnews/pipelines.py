@@ -8,10 +8,11 @@ import mysql.connector
 from scrapy.crawler import Crawler
 from scrapy.spiders import Spider
 from mechanicalnews.items import FrontpageItem, ArticleItem, LogAction
-from mechanicalnews.sources import SourceManager
+from mechanicalnews.sources import Sources
 from mechanicalnews.utils import TextUtils, WebUtils
 from mechanicalnews.settings import AppConfig
 from mechanicalnews.storage import StaticFiles
+
 
 class MySQLPipeline(object):
     """Pipeline to save scraped items to MySQL/MariaDB."""
@@ -69,7 +70,7 @@ class MySQLPipeline(object):
             A Scrapy spider object.
         """
         self._register_spider(spider)
-        SourceManager.set_spider_last_run(guid=spider.SPIDER_GUID)
+        Sources.set_spider_last_run(guid=spider.SPIDER_GUID)
         self.spider_name = spider.name
         self.conn = mysql.connector.connect(database=self.database,
                                             user=self.username,
@@ -94,7 +95,7 @@ class MySQLPipeline(object):
         spider : scrapy.spiders.Spider
             A Scrapy spider object.
         """
-        spider._SOURCE_ID = SourceManager.register_spider(name=spider.name, guid=spider.SPIDER_GUID)
+        spider._SOURCE_ID = Sources.register_spider(name=spider.name, guid=spider.SPIDER_GUID)
         if spider._SOURCE_ID:
             spider.logger.info("Spider registered as #{}".format(spider._SOURCE_ID))
         else:

@@ -502,7 +502,7 @@ if __name__ == "__main__":
     api.add_resource(SourceList, "/sources")
     api.add_resource(SourceByID, "/sources/<int:source_id>")
     api.add_resource(FrontpageByDomain, "/frontpages/<string:domain>")
-    api.add_resource(ServeImage, "/images/<string:image_file>")
+    api.add_resource(ServeImage, "/images/<string:image>")
     api.add_resource(ServeHtml, "/html/<int:article_id>")
     api.add_resource(ArticleList, "/articles")
     api.add_resource(ArticleCount, "/count")

@@ -7,6 +7,7 @@ from scrapy.linkextractors import LinkExtractor
 from mechanicalnews.basespider import BaseArticleSpider
 from mechanicalnews.extractors import ArticleExtractor
 from mechanicalnews.items import ArticleItem, PageType, ArticleGenre
+from mechanicalnews.utils import DateUtils, TextUtils
 
 
 class EtcSpider(BaseArticleSpider):

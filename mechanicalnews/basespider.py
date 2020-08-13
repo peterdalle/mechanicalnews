@@ -388,8 +388,7 @@ class BaseArticleSpider(CrawlSpider):
         self.extractor = ArticleExtractor.from_response(response)
         if self.extractor.microdata:
             self.item["metadata_raw"] = json.dumps(self.extractor.microdata)
-        self.item["metadata"] = self.extractor.get_metatags(
-                                       exclude_metatags=self.EXCLUDED_META_TAGS)
+        self.item["metadata"] = self.extractor.get_metatags(exclude_metatags=self.EXCLUDED_META_TAGS)
         self.item["source_id"] = self._SOURCE_ID
         self.item["url"] = response.url
         self.item["response_headers"] = response.headers
@@ -400,9 +399,7 @@ class BaseArticleSpider(CrawlSpider):
         if self.item["body_html"]:
             self.item["body"] = TextUtils.html_to_text(self.item["body_html"])
         if not self.item["language"]:
-            self.item["language"] = TextUtils.detect_language(
-                                                         self.item["body"],
-                                                         self.DEFAULT_LANGUAGE)
+            self.item["language"] = TextUtils.detect_language(text = self.item["body"], fallback=self.DEFAULT_LANGUAGE)
         self._set_text_counts()
         return self.item
 
@@ -426,15 +423,11 @@ class BaseArticleSpider(CrawlSpider):
         if not isinstance(item, ArticleItem):
             raise TypeError("Parameter 'item' must be an ArticleItem.")
         # Make sure these are of correct data type.
-        self._check_item_data_type(item, str, ["title", "title_raw", "h1",
-                                               "lead", "body", "section"])
-        self._check_item_data_type(item, list, ["images", "image_urls", "tags",
-                                                "categories", "authors",
-                                                "links"])
+        self._check_item_data_type(item, str, ["title", "title_raw", "h1", "lead", "body", "section"])
+        self._check_item_data_type(item, list, ["images", "image_urls", "tags", "categories", "authors", "links"])
         self._check_item_data_type(item, int, ["source_id"])
         self._check_item_data_type(item, bool, ["is_deleted", "is_paywalled"])
-        self._check_item_data_type(item, datetime.datetime, ["published",
-                                                             "edited"])
+        self._check_item_data_type(item, datetime.datetime, ["published", "edited"])
         self._check_item_data_type(item, PageType, ["page_type"])
         self._check_item_data_type(item, ArticleGenre, ["article_genre"])
         if item["body"]:

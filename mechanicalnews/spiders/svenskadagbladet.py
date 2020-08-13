@@ -9,6 +9,7 @@ from mechanicalnews.basespider import BaseArticleSpider
 from mechanicalnews.extractors import ArticleExtractor
 from mechanicalnews.items import ArticleItem, PageType, ArticleGenre
 from mechanicalnews.settings import PaywallLogin
+from mechanicalnews.utils import DateUtils, TextUtils
 
 
 class SvenskaDagbladetSpider(BaseArticleSpider):

@@ -9,7 +9,7 @@ import sys
 import argparse
 import smtplib
 import datetime
-from mechanicalnews.core import ArticleFilter, ArticleManager
+from mechanicalnews.articles import ArticleFilter, Articles
 from mechanicalnews.stats import SummaryStats
 from mechanicalnews.settings import AppConfig
 from mechanicalnews.utils import TextUtils, FileUtils, WebUtils, PrettyPrint
@@ -108,7 +108,7 @@ class Reports():
             print("No ID found.")
             return
         # Try to interpret ID string.
-        a = ArticleManager()
+        a = Articles()
         article = None
         id_int = None
 
@@ -145,7 +145,7 @@ class Reports():
         if query:
             filters.query = query
         rows = []
-        a = ArticleManager()
+        a = Articles()
         for article in a.get_articles(filters):
             a = article.get_json(iso_date=False)
             rows.append((
@@ -451,9 +451,7 @@ if __name__ == "__main__":
                 report = EmailReport.from_config()
                 report.send_email_report()
             else:
-                print("Cannot send email, email is turned off." +
-                      " Change behavior in settings.py" +
-                      " (AppConfig.EMAIL_ENABLE).")
+                print("Cannot send email, email setting is turned off.")
         else:
             parser.print_help()
     else:

@@ -42,7 +42,7 @@ SPIDER_MIDDLEWARES = {
 DOWNLOADER_MIDDLEWARES = {
     'scrapy_splash.SplashCookiesMiddleware': 720,
     'scrapy_splash.SplashMiddleware': 725,
-    'scrapy_selenium.SeleniumMiddleware': 800,
+    #'scrapy_selenium.SeleniumMiddleware': 800,
     'scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware': 810,
 }
 
@@ -83,7 +83,7 @@ HTTPCACHE_IGNORE_HTTP_CODES = []
 # HTTPCACHE_STORAGE = 'scrapy_splash.SplashAwareFSCacheStorage'
 
 # Only log information.
-LOG_LEVEL = 'WARNING'
+LOG_LEVEL = 'INFO'
 
 # Where to store article images.
 IMAGES_STORE = '/mechanicalnews/data/images'

@@ -67,7 +67,7 @@ class TextUtils():
         return 0
 
     @staticmethod
-    def detect_language(text: str, min_length=20, fallback=None) -> str:
+    def detect_language(text: str, min_length=20, fallback="") -> str:
         """Detect language of text string.
 
         Parameters
@@ -85,9 +85,12 @@ class TextUtils():
         -------
         str
             Returns language in ISO 639-1 format (e.g., `en` for English).
+            Returns fallback if language could not be detected.
         """
         if not text:
             return fallback
+        if not type(text) == str:
+            text = str(text)
         if len(text) >= min_length:
             return langdetect.detect(text)
         return fallback
