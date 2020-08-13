@@ -11,12 +11,12 @@ from mechanicalnews.settings import AppConfig
 from mechanicalnews.database import MySqlDatabase
 
 
-class SourceManager():
+class Sources():
     """Handles sources: create, read, update, and delete."""
 
     @staticmethod
     def get_sources(source_id=None) -> list:
-        """Get list of all sources."""
+        """Get list of all sources from database."""
         db = MySqlDatabase.from_settings()
         db.open()
         db.cur.execute("SELECT * FROM sources ORDER BY name ASC")
@@ -31,12 +31,11 @@ class SourceManager():
 
     @staticmethod
     def get_source_by_id(source_id) -> dict:
-        """Get source by its ID."""
+        """Get source by its ID from database."""
         source = None
         db = MySqlDatabase.from_settings()
         db.open()
-        db.cur.execute(
-            "SELECT * FROM sources WHERE id = %s LIMIT 1", (source_id, ))
+        db.cur.execute("SELECT * FROM sources WHERE id = %s LIMIT 1", (source_id, ))
         if db.cur:
             for row in db.cur:
                 source = SourceItem.from_datarow(row)
@@ -45,26 +44,23 @@ class SourceManager():
 
     @staticmethod
     def get_id_by_guid(guid, raise_keyerror=False) -> int:
-        """Get source ID by GUID."""
+        """Get source ID by GUID from database."""
         source_id = None
         db = MySqlDatabase.from_settings()
         db.open()
-        db.cur.execute(
-                   "SELECT id FROM sources WHERE guid=%s LIMIT 1", (guid, ))
+        db.cur.execute("SELECT id FROM sources WHERE guid=%s LIMIT 1", (guid, ))
         if db.cur:
             source_dict = db.cur.fetchone()
             if source_dict:
                 source_id = source_dict["id"]
         db.close()
         if not source_id and raise_keyerror:
-            raise KeyError("Source GUID {} not found.".format(
-                guid
-            ))
+            raise KeyError("Source GUID {} not found.".format(guid))
         return source_id
 
     @staticmethod
     def register_spider(name, guid) -> int:
-        """Register source GUID and return source ID."""
+        """Register source GUID in database and return source ID."""
         spider_id = SourceManager.get_id_by_guid(guid)
         if spider_id:
             return spider_id
@@ -78,7 +74,7 @@ class SourceManager():
 
     @staticmethod
     def set_spider_last_run(guid):
-        """Set the datetime when the spider started.
+        """Set the datetime in database when the spider started.
 
         Parameters
         ----------

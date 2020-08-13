@@ -52,14 +52,12 @@ class MySqlDatabase():
         self.host = host
         self.charset = charset
         if auth_plugin not in ["mysql_native_password", None]:
-            raise ValueError(
-            "Parameter 'auth_plugin' must be 'mysql_native_password' or None.")
+            raise ValueError("Parameter 'auth_plugin' must be 'mysql_native_password' or None.")
         self.auth_plugin = auth_plugin
 
     def __repr__(self):
         """Text represention of object."""
-        return "{}(database='{}', host='{}')".format(
-            self.__class__.__name__, self.database, self.host)
+        return "{}(database='{}', host='{}')".format(self.__class__.__name__, self.database, self.host)
 
     def __enter__(self):
         """Open database connection for context manager."""
@@ -105,6 +103,8 @@ class MySqlDatabase():
 
     def open(self):
         """Open database connection."""
+        if self.conn and self.cur:
+            return
         self.conn = mysql.connector.connect(database=self.database,
                                             user=self.username,
                                             password=self.password,
@@ -118,8 +118,10 @@ class MySqlDatabase():
         """Close database connection."""
         if self.cur:
             self.cur.close()
+            self.cur = None
         if self.conn:
             self.conn.close()
+            self.conn = None
 
     def execute(self, query: str, params=None):
         """Execute a SQL query that does not return any value.

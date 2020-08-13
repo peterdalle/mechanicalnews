@@ -59,8 +59,7 @@ class Reports():
         lines = []
         for pair in s:
             lines.append([pair["source"], str(pair["articles"])])
-        PrettyPrint.print_columns(lines, headers=["Sources", "Saved articles"],
-                                  indent=2)
+        PrettyPrint.print_columns(lines, headers=["Sources", "Saved articles"], indent=2)
 
     @staticmethod
     def print_article_counts():
@@ -99,8 +98,7 @@ class Reports():
                 "#" + str(row["article_id"]) if row["article_id"] else "",
                 str(row["latency"]) if row["latency"] else ""
             ))
-        PrettyPrint.print_columns(rows, headers=["Date", "Action",
-                                  "Article", "Latency (ms)"], indent=2)
+        PrettyPrint.print_columns(rows, headers=["Date", "Action", "Article", "Latency (ms)"], indent=2)
 
     @staticmethod
     def print_article(id_string):
@@ -122,8 +120,7 @@ class Reports():
             print("Interpreted as article ID")
             article = a.get_article_by_id(id_int)
         elif type(id_string) == str:
-            if id_string.startswith(
-                   "http://") or id_string.startswith("https://"):
+            if id_string.startswith("http://") or id_string.startswith("https://"):
                 print("Interpreted as article URL")
                 article_id = a.get_article_id_by_url(id_string)
                 if article_id:
@@ -213,9 +210,7 @@ class Reports():
 
         Change the `resolution` to further strip parts of the date."""
         if resolution not in ["minute", "date", "month", "year"]:
-            raise ValueError(
-                "Argument 'resolution' must be " +
-                "'minute', 'date', 'month', or 'year'.")
+            raise ValueError("Argument 'resolution' must be 'minute', 'date', 'month', or 'year'.")
         if not date:
             return ""
         if resolution.lower() == "minute":

@@ -15,9 +15,8 @@ class ArticleFilter():
     """Filter for retrieving list of articles. Used in article search."""
 
     def __init__(self, args=None):
-        """Set filters by values from query string.
-
-        If no query string, use default values."""
+        """Set filters by values from query string. If no query string, use
+        default values."""
         self.args = args
         self.limit = self.get_int("limit", default=500)
         self.offset_id = self.get_int("offset_id", default=0)
@@ -28,11 +27,7 @@ class ArticleFilter():
         self.to_date = self.get_str("to_date")
         self.author = self.get_str("author")
         self.source = self.get_str("source")
-        self.append_resources = self.get_bool("append_resources", default=True)
-
-    @classmethod
-    def from_args(cls, args):
-        return cls(args=args)
+        self.include_additionals = self.get_bool("include_additionals", default=True)
 
     def get_str(self, name, default="") -> str:
         """Read string value from query string, or use default value."""
@@ -59,14 +54,10 @@ class ArticleFilter():
         return default
 
 
-class ArticleManager():
-    """Create, read, update, and delete articles.
+class Articles():
+    """Create, read, update, and delete articles."""
 
-    Pipeline to read articles from SQLite.
-    """
-
-    def __init__(self, filename=""):
-        """Initialize."""
+    def __init__(self):
         super().__init__()
         self.last_article_id = 0
         self.db = MySqlDatabase.from_settings()
@@ -89,8 +80,7 @@ class ArticleManager():
         sources = None
         sql = "SELECT id FROM sources WHERE name LIKE %s OR url LIKE %s"
         self.db.open()
-        self.db.cur.execute(sql, ("%" + source + "%", "%" +
-                                  source + "%", ))
+        self.db.cur.execute(sql, ("%" + source + "%", "%" + source + "%", ))
         if self.db.cur:
             sources = []
             for row in self.db.cur:
@@ -140,9 +130,7 @@ class ArticleManager():
         """
         hits = None
         if not filters:
-            filters = ArticleFilter(args={
-                "to_date": datetime.datetime.now().date()
-                })
+            filters = ArticleFilter(args={"to_date": datetime.datetime.now().date()})
         sql = self._build_sql_from_filter(filters=filters, hits_only=True)
         self.db.open()
         self.db.cur.execute(sql)
@@ -156,10 +144,24 @@ class ArticleManager():
         self.db.close()
         return hits
 
-    def get_articles(self, filters=None) -> list:
-        """Get list of articles, filtered by search criteria.
+    def get_article_by_id(self, article_id):
+        """Get article by its ID."""
+        article = None
+        self.db.open()
+        self.db.cur.execute("""SELECT a.*, u.url, s.name AS source
+        FROM articles a
+        INNER JOIN article_urls u ON u.id=a.url_id
+        INNER JOIN sources s ON s.id=a.source_id
+        WHERE a.id = %s LIMIT 1""", (article_id,))
+        for row in self.db.cur:
+            article = ArticleItem.from_datarow(row)
+            self.db.close()
+            return article
+        self.db.close()
+        return article
 
-        Empty `filters` will get latest 500 articles in descending order."""
+    def get_articles(self, filters=None) -> list:
+        """Get list of articles, filtered by search criteria."""
         articles = None
         sql = self._build_sql_from_filter(filters=filters)
         self.db.open()
@@ -170,6 +172,29 @@ class ArticleManager():
                 articles.append(ArticleItem.from_datarow(row))
         self.db.close()
         return articles
+
+    def append_additionals(self, article: ArticleItem) -> ArticleItem:
+        """Append additional data (e.g., images, links) to articles.
+        
+        Parameters
+        ----------
+        articles : list
+            An article.
+
+        Returns
+        -------
+        list
+            Returns the article with additional metadata added.
+        """
+        if not article:
+            return article
+        article_id = article["article_id"]
+        article["images"] = self.get_images(article_id)
+        article["metadata"] = self.get_metadata(article_id)
+        article["links"] = self.get_links(article_id)
+        article["log"] = self.get_log(article_id)
+        article["response_headers"] = self.get_headers(article_id)
+        return article
 
     def _secure_input(self, text):
         """Secure the input text from SQL injections."""
@@ -182,19 +207,18 @@ class ArticleManager():
                                hits_only=False):
         """Build SQL query from filter. Used in get_articles()."""
         if filters and type(filters) != ArticleFilter:
-            raise TypeError("Filters should be of type {}, not {}.".format(
-                ArticleFilter, type(filters)))
+            raise TypeError("Filters should be of type {}, not {}.".format(ArticleFilter, type(filters)))
         sql_where = self._append_where_filters(filters)
         # Append SQL parts into final SQL.
         if count_only:
-            # Only get number of articles.
+            # Get total number of articles.
             sql = """SELECT COUNT(*) count
                     FROM articles a
                     FORCE INDEX (id, title, title_2, title_3)
                     {} LIMIT 1"""
             sql = sql.format(sql_where)
         elif hits_only:
-            # Only get number of hits by date.
+            # Get total number of articles by date.
             sql = """SELECT DATE(published) timeunit, COUNT(*) count
                     FROM articles a
                     FORCE INDEX (id, title, title_2, title_3)
@@ -204,7 +228,7 @@ class ArticleManager():
                     """
             sql = sql.format(sql_where)
         else:
-            # Get actual article content.
+            # Get article content.
             sql = """SELECT a.*, u.url, s.name source
                     FROM articles a
                     FORCE INDEX (id, title, title_2, title_3)
@@ -215,7 +239,7 @@ class ArticleManager():
         return sql
 
     def _append_where_filters(self, filters: ArticleFilter) -> str:
-        """Append WHERE filter."""
+        """Append WHERE filter for for the SQL query."""
         if not filters:
             return ""
         where = []
@@ -225,40 +249,32 @@ class ArticleManager():
             where.append("a.id < {}".format(filters.offset_id))
         if filters.id:
             # What articles to filter.
-            where.append("a.id IN ({})".format(
-                self._secure_input(filters.id)))
+            where.append("a.id IN ({})".format(self._secure_input(filters.id)))
         if filters.query != "":
             # Search query using fulltext index.
             where.append("MATCH (a.title, a.lead, a.body)" +
-                         " AGAINST ('{}' IN BOOLEAN MODE)".format(
-                             self._secure_input(filters.query)))
+                         " AGAINST ('{}' IN BOOLEAN MODE)".format(self._secure_input(filters.query)))
         if filters.url:
             # Article URL to search for.
-            where.append("u.url = '{}'".format(
-                self._secure_input(filters.url)))
+            where.append("u.url = '{}'".format(self._secure_input(filters.url)))
         if filters.author:
             # Get articles from author.
-            where.append("a.author LIKE '%{}%'".format(
-                self._secure_input(filters.author)))
+            where.append("a.author LIKE '%{}%'".format(self._secure_input(filters.author)))
         if filters.source:
             # Get articles from source.
             # First convert source names to list of source IDs.
             source_ids = self.parse_sources_to_id(filters.source)
             if source_ids:
-                where.append("a.source_id IN ({})".format(
-                    ",".join(str(x) for x in source_ids)))
+                where.append("a.source_id IN ({})".format(",".join(str(x) for x in source_ids)))
             else:
                 # If source isn't found, don't return articles.
                 where.append("1=2")
         if filters.from_date and filters.to_date:
             # Published between these dates.
-            where.append("DATE(a.published) BETWEEN '{}' AND '{}'".format(
-                            filters.from_date, filters.to_date))
+            where.append("DATE(a.published) BETWEEN '{}' AND '{}'".format(filters.from_date, filters.to_date))
         elif filters.from_date:
             # Published after this date.
-            where.append(
-                "DATE(a.published) BETWEEN '{}' AND DATE('now')".format(
-                            filters.from_date))
+            where.append("DATE(a.published) BETWEEN '{}' AND DATE('now')".format(filters.from_date))
         elif filters.to_date:
             # Published before this date.
             where.append("DATE(a.published) <= '{}'".format(filters.to_date))
@@ -266,36 +282,14 @@ class ArticleManager():
             return "WHERE " + " AND ".join(where)
         return ""
 
-    def get_article_by_id(self, article_id, include_lists=True):
-        """Get article by its ID."""
-        article = None
-        self.db.open()
-        self.db.cur.execute("""SELECT a.*, u.url, s.name AS source
-        FROM articles a
-        INNER JOIN article_urls u ON u.id=a.url_id
-        INNER JOIN sources s ON s.id=a.source_id
-        WHERE a.id = %s LIMIT 1""", (article_id,))
-        if self.db.cur:
-            for row in self.db.cur:
-                # Get article.
-                article = ArticleItem.from_datarow(row)
-                if include_lists:
-                    # Get lists of images, links, meta data, article log?
-                    article.images = self.get_images(article_id)
-                    article.metadata = self.get_metadata(article_id)
-                    article.links = self.get_links(article_id)
-                    article.log = self.get_log(article_id)
-                    article.headers = self.get_headers(article_id)
-        self.db.close()
-        return article
-
     def get_article_id_by_url(self, url):
         """Get article ID by URL."""
+        if not url:
+            raise ValueError("url cannot be empty.")
         article_id = None
         url_checksum = hashlib.md5(url.encode("utf-8")).hexdigest()
         self.db.open()
-        self.db.cur.execute("SELECT id FROM article_urls WHERE checksum = %s",
-                            (url_checksum,))
+        self.db.cur.execute("SELECT id FROM article_urls WHERE checksum = %s", (url_checksum,))
         for row in self.db.cur.fetchall():
             article_id = row["id"]
         self.db.close()
@@ -303,10 +297,11 @@ class ArticleManager():
 
     def get_versions(self, article_id):
         """Get list of all versions of an article."""
+        if not article_id:
+            raise ValueError("article_id cannot be empty.")
         versions = None
-        sql = "SELECT * FROM articles WHERE parent_id = %s ORDER BY id DESC"
         self.db.open()
-        self.db.cur.execute(sql, (article_id,))
+        self.db.cur.execute("SELECT * FROM articles WHERE parent_id = %s ORDER BY id DESC", (article_id,))
         if self.db.cur:
             versions = []
             for row in self.db.cur:
@@ -316,31 +311,38 @@ class ArticleManager():
 
     def get_images(self, article_id):
         """Get list of all images in an article."""
+        if not article_id:
+            raise ValueError("article_id cannot be empty.")
         images = None
         self.db.open()
-        self.db.cur.execute(
-            "SELECT * FROM article_images WHERE article_id = %s",
-            (article_id,))
+        self.db.cur.execute("SELECT * FROM article_images WHERE article_id = %s", (article_id,))
         if self.db.cur:
             images = []
             for row in self.db.cur:
                 image = {
                             "url": row["url"],
                             "path": row["path"],
+                            "filename": self._extract_filename(row["path"]),
                             "checksum": row["checksum"]
                         }
                 images.append(image)
         self.db.close()
         return images
 
+    def _extract_filename(self, path: str) -> str:
+        if not path:
+            return ""
+        return path.replace("full/", "")
+
     def get_metadata(self, article_id):
         """Get meta data for a specific article.
 
         Meta data are collected from the `<meta>` tags of article."""
+        if not article_id:
+            raise ValueError("article_id cannot be empty.")
         metadata = None
         self.db.open()
-        self.db.cur.execute("SELECT * FROM article_meta WHERE article_id = %s",
-                            (article_id,))
+        self.db.cur.execute("SELECT * FROM article_meta WHERE article_id = %s", (article_id,))
         if self.db.cur:
             metadata = []
             for row in self.db.cur:
@@ -357,9 +359,10 @@ class ArticleManager():
         """Get raw metadata for a specific article.
 
         Raw metadata is all metadata collected."""
+        if not article_id:
+            raise ValueError("article_id cannot be empty.")
         self.db.open()
-        self.db.cur.execute("SELECT metadata FROM article_raw" +
-                            " WHERE article_id = %s LIMIT 1", (article_id,))
+        self.db.cur.execute("SELECT metadata FROM article_raw WHERE article_id = %s LIMIT 1", (article_id,))
         json_dict = None
         if self.db.cur:
             json_data = self.db.cur.fetchone()
@@ -376,9 +379,10 @@ class ArticleManager():
         """Get log for a specific article.
 
         The log contain articke history: crawl date, update date, etc."""
+        if not article_id:
+            raise ValueError("article_id cannot be empty.")
         self.db.open()
-        self.db.cur.execute("SELECT * FROM log WHERE article_id = %s",
-                            (article_id,))
+        self.db.cur.execute("SELECT * FROM log WHERE article_id = %s", (article_id,))
         logs = None
         if self.db.cur:
             logs = []
@@ -387,8 +391,7 @@ class ArticleManager():
                     "id": row["id"],
                     "action_id": row["action_id"],
                     "action_message": str(LogAction(row["action_id"])),
-                    "added": DateUtils.set_iso_date(row["added"],
-                                                    iso_date=iso_date),
+                    "added": DateUtils.set_iso_date(row["added"], iso_date=iso_date),
                 }
                 logs.append(meta)
         self.db.close()
@@ -398,11 +401,11 @@ class ArticleManager():
         """Get all links in an article.
 
         Refers to all links within the body of the article text."""
+        if not article_id:
+            raise ValueError("article_id cannot be empty.")
         self.db.open()
-        self.db.cur.execute("""SELECT to_url_id, url
-        FROM article_links l
-        LEFT JOIN article_urls u ON u.id=l.to_url_id
-        WHERE l.article_id = %s""", (article_id,))
+        self.db.cur.execute("""SELECT to_url_id, url FROM article_links l
+        LEFT JOIN article_urls u ON u.id=l.to_url_id WHERE l.article_id = %s""", (article_id,))
         links = None
         if self.db.cur:
             links = []
@@ -417,10 +420,10 @@ class ArticleManager():
 
     def get_headers(self, article_id):
         """Get HTTP headers for a specific article."""
+        if not article_id:
+            raise ValueError("article_id cannot be empty.")
         self.db.open()
-        self.db.cur.execute(
-            "SELECT * FROM article_headers WHERE article_id = %s",
-            (article_id,))
+        self.db.cur.execute("SELECT * FROM article_headers WHERE article_id = %s", (article_id,))
         headers = None
         if self.db.cur:
             headers = []
@@ -430,5 +433,5 @@ class ArticleManager():
                     "value": row["value"],
                 }
                 headers.append(header)
-        self.db.close()
+        self.db.close() 
         return headers

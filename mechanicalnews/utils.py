@@ -226,8 +226,7 @@ class TextUtils():
         return line
 
     @staticmethod
-    def convert_list_to_string(char_list: list, strip=True, sep="\n",
-                               default=None) -> str:
+    def convert_list_to_string(char_list: list, strip=True, sep="\n", default=None) -> str:
         """Convert a list to a string separated by newline.
 
         Parameters
@@ -500,8 +499,7 @@ class DateUtils():
         return None
 
     @staticmethod
-    def parse_date(date_string: str, date_formats=None, 
-                   languages=None) -> datetime.datetime:
+    def parse_date(date_string: str, date_formats=None, languages=None) -> datetime.datetime:
         """Parse dates.
 
         Parameters
@@ -667,9 +665,7 @@ class PrettyPrint():
         ```
         """
         if type(data) != dict:
-            raise ValueError(
-                "Argument 'data' mus be of type dict, not {}.".format(
-                    type(data).__name__))
+            raise ValueError("Argument 'data' mus be of type dict, not {}.".format(type(data).__name__))
         line = []
         for key, value in data.items():
             # Ignore all but integers.

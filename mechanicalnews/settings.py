@@ -83,7 +83,7 @@ HTTPCACHE_IGNORE_HTTP_CODES = []
 # HTTPCACHE_STORAGE = 'scrapy_splash.SplashAwareFSCacheStorage'
 
 # Only log information.
-LOG_LEVEL = 'INFO'
+LOG_LEVEL = 'WARNING'
 
 # Where to store article images.
 IMAGES_STORE = '/mechanicalnews/data/images'

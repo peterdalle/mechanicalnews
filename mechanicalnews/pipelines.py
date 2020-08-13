@@ -11,13 +11,12 @@ from mechanicalnews.items import FrontpageItem, ArticleItem, LogAction
 from mechanicalnews.sources import SourceManager
 from mechanicalnews.utils import TextUtils, WebUtils
 from mechanicalnews.settings import AppConfig
-
+from mechanicalnews.files import StaticFiles
 
 class MySQLPipeline(object):
     """Pipeline to save scraped items to MySQL/MariaDB."""
 
-    def __init__(self, database: str, username: str,
-                 password: str, charset: str, auth_plugin: str):
+    def __init__(self, database: str, username: str, password: str, charset: str, auth_plugin: str):
         """Default constructor.
 
         Parameters
@@ -95,15 +94,12 @@ class MySQLPipeline(object):
         spider : scrapy.spiders.Spider
             A Scrapy spider object.
         """
-        spider._SOURCE_ID = SourceManager.register_spider(
-                                     name=spider.name, guid=spider.SPIDER_GUID)
+        spider._SOURCE_ID = SourceManager.register_spider(name=spider.name, guid=spider.SPIDER_GUID)
         if spider._SOURCE_ID:
-            spider.logger.info(
-                "Spider registered as #{}".format(spider._SOURCE_ID))
+            spider.logger.info("Spider registered as #{}".format(spider._SOURCE_ID))
         else:
-            spider.logger.warn(
-                "Couldn't register ID for '{}' (GUID {})".format(
-                    spider.name, spider.SPIDER_GUID))
+            spider.logger.warn("Couldn't register ID for '{}' (GUID {})".format(
+                               spider.name, spider.SPIDER_GUID))
 
     def close_spider(self, spider: Spider):
         """Runs when spider closes. Closes database connection.
@@ -113,8 +109,7 @@ class MySQLPipeline(object):
         spider : scrapy.spiders.Spider
             A Scrapy spider object.
         """
-        self.save_log_action(LogAction.CLOSE_SPIDER,
-                             source_id=spider._SOURCE_ID)
+        self.save_log_action(LogAction.CLOSE_SPIDER, source_id=spider._SOURCE_ID)
         self.save_scraping_stats(spider)
         if self.cur:
             self.cur.close()
@@ -157,12 +152,10 @@ class MySQLPipeline(object):
         """
         if item["links"]:
             # Insert frontpage links into database.
-            from_url_id, _ = self._create_or_get_url_id_from_url(
-                                                              item["from_url"])
+            from_url_id, _ = self._create_or_get_url_id_from_url(item["from_url"])
             for link in item["links"]:
                 to_url_id, _ = self._create_or_get_url_id_from_url(link)
-                sql_query = "INSERT INTO frontpage_articles" + \
-                            " (source_id, from_url_id, to_url_id, added)" + \
+                sql_query = "INSERT INTO frontpage_articles (source_id, from_url_id, to_url_id, added)" + \
                             " VALUES (%s, %s, %s, %s)"
                 self.cur.execute(sql_query, (
                     TextUtils.sanitize_int(item["source_id"], default=0),
@@ -185,25 +178,19 @@ class MySQLPipeline(object):
         if is_new:
             # Save completely new article.
             article_id = self._insert_article(item, url_id)
-            self.save_log_action(LogAction.ADD_ARTICLE, article_id=article_id,
-                                 item=item)
-            self.spider.logger.info("Saved #{} <{}>".format(article_id,
-                                                            item["url"]))
+            self.save_log_action(LogAction.ADD_ARTICLE, article_id=article_id, item=item)
+            self.spider.logger.info("Saved #{} <{}>".format(article_id, item["url"]))
         else:
             # Existing article found: has it changed since previous scraping?
             is_changed, parent_id = self._detect_article_changes(item, url_id)          
             if is_changed:
                 # Changes found: save new version.
                 article_id = self._insert_article(item, url_id)
-                self.save_log_action(LogAction.ADD_VERSION, 
-                                     article_id=parent_id, item=item)
-                self.spider.logger.info("Saved changes #{} <{}>".format(
-                                        article_id, item["url"]))
+                self.save_log_action(LogAction.ADD_VERSION, article_id=parent_id, item=item)
+                self.spider.logger.info("Saved changes #{} <{}>".format(article_id, item["url"]))
             else:
                 # No changes found, don't save.
-                self.save_log_action(LogAction.NO_CHANGE_SKIP,
-                                    article_id=parent_id,
-                                    item=item)
+                self.save_log_action(LogAction.NO_CHANGE_SKIP, article_id=parent_id, item=item)
 
     def _detect_article_changes(self, item: ArticleItem, url_id: int) -> tuple:
         """Check whether the content of an existing has changed.
@@ -224,7 +211,7 @@ class MySQLPipeline(object):
             has changed (bool), and the ID of the previous article (int).
             If no article is found, the article ID of `None` is returned.
         """
-        new_checksum = self._compute_article_checksum(item)
+        new_checksum = item.compute_checksum()
         old_article = self._get_article_checksum_by_url_id(url_id)
         old_checksum = old_article["checksum"] if old_article else None
         has_changed = (new_checksum != old_checksum)
@@ -247,7 +234,7 @@ class MySQLPipeline(object):
         self.save_article_metadata(item, article_id)
         self.save_article_http_headers(item, article_id)
         self.save_article_html(item, article_id)
-        self.save_html_file(item, article_id)
+        StaticFiles.save_html_file(item["response_html"], article_id)
         return article_id
 
     def _create_or_get_url_id_from_url(self, url: str) -> tuple:
@@ -273,8 +260,7 @@ class MySQLPipeline(object):
         try:
             domain = WebUtils.get_domain_name(url)
             url_checksum = TextUtils.md5_hash(url)
-            sql_query = "INSERT INTO article_urls (url, domain, checksum)" + \
-                        " VALUES(%s, %s, %s)"
+            sql_query = "INSERT INTO article_urls (url, domain, checksum) VALUES(%s, %s, %s)"
             self.cur.execute(sql_query, (
                 TextUtils.sanitize_str(url, default="", keep_newlines=False),
                 TextUtils.sanitize_str(domain, default=None),
@@ -313,14 +299,12 @@ class MySQLPipeline(object):
         if use_checksum:
             # Fast URL lookup using MD5 checksums (by index).
             url_checksum = TextUtils.md5_hash(url)
-            self.cur.execute("SELECT id FROM article_urls WHERE checksum = %s",
-                             (url_checksum, ))
+            self.cur.execute("SELECT id FROM article_urls WHERE checksum = %s", (url_checksum, ))
             for row in self.cur.fetchall():
                 return row[0]
         else:
             # Slow URL lookup using string comparison.
-            self.cur.execute("SELECT id FROM article_urls WHERE url = %s",
-                             (url, ))
+            self.cur.execute("SELECT id FROM article_urls WHERE url = %s", (url, ))
             for row in self.cur.fetchall():
                 return row[0]
         return None
@@ -342,45 +326,11 @@ class MySQLPipeline(object):
             None if no article is found.
         """
         self.cur.execute("SELECT id, checksum FROM articles" +
-                         " WHERE url_id = %s ORDER BY id DESC LIMIT 1",
-                         (url_id, ))
+                         " WHERE url_id = %s ORDER BY id DESC LIMIT 1", (url_id, ))
         if self.cur:
             for row in self.cur:
                 return {"article_id": row[0], "checksum": row[1]}
         return None
-
-    def _compute_article_checksum(self, item: ArticleItem) -> str:
-        """Compute MD5 hash of article content.
-
-        Fast and easy way to detect content changes by comparing MD5 hash
-        stored in database with MD5 hash of scraped content. Any change in
-        the content, no matter how small, gives a new MD5 hash.
-
-        The elements that makes up the MD5 hash are: title, heading (h1), lead
-        body text, publish date, modified date, author names, article section,
-        article tags, and article categories.
-
-        Parameters
-        ----------
-        item : items.ArticleItem
-            An ArticleItem with the extracted information from a news article.
-
-        Returns
-        -------
-        str
-            An MD5 hash of the news article information.
-        """
-        data = str(item["title"]) + \
-            str(item["h1"]) + \
-            str(item["lead"]) + \
-            str(item["body"]) + \
-            str(item["published"]) + \
-            str(item["edited"]) +  \
-            str(item["authors"]) + \
-            str(item["section"]) + \
-            str(item["tags"]) + \
-            str(item["categories"])
-        return TextUtils.md5_hash(data)
 
     def save_article_and_get_id(self, item: ArticleItem, url_id: int) -> int:
         """Save article information to database, and return ID of article.
@@ -400,8 +350,7 @@ class MySQLPipeline(object):
         if not item:
             raise AttributeError("Cannot save article: 'item' is missing.")
         if not item["source_id"]:
-            raise AttributeError(
-                      "Cannot save article: 'source_id' is missing from item.")
+            raise AttributeError("Cannot save article: 'source_id' is missing from item.")
         if not url_id > 0:
             raise AttributeError("Cannot save article: 'url_id' is missing.")
         try:
@@ -423,7 +372,7 @@ class MySQLPipeline(object):
                 int(item["article_genre"]),
                 int(item["is_paywalled"]),
                 int(item["is_deleted"]),
-                self._compute_article_checksum(item),
+                item.compute_checksum(),
                 TextUtils.sanitize_str(item["title"], default="",
                                        keep_newlines=False),
                 TextUtils.sanitize_str(item["h1"], default="",
@@ -487,8 +436,7 @@ class MySQLPipeline(object):
         """
         if item["images"] and article_id:
             for image in item["images"]:
-                sql_query = "INSERT INTO article_images" + \
-                            " (article_id, url, path, checksum)" + \
+                sql_query = "INSERT INTO article_images (article_id, url, path, checksum)" + \
                             " VALUES (%s, %s, %s, %s)"
                 self.cur.execute(sql_query, (article_id, image["url"],
                                              image["path"],
@@ -507,8 +455,7 @@ class MySQLPipeline(object):
         """
         if item["response_headers"] and article_id:
             for header in item["response_headers"]:
-                sql_query = "INSERT INTO article_headers" + \
-                             " (article_id, name, value) VALUES (%s, %s, %s)"
+                sql_query = "INSERT INTO article_headers (article_id, name, value) VALUES (%s, %s, %s)"
                 self.cur.execute(sql_query,
                                  (article_id,
                                   header,
@@ -528,8 +475,7 @@ class MySQLPipeline(object):
         if item["metadata"] and article_id:
             for meta in item["metadata"]:
                 if meta["content"] != "":
-                    sql_query = "INSERT INTO article_meta" + \
-                                " (article_id, name, content, is_property)" + \
+                    sql_query = "INSERT INTO article_meta (article_id, name, content, is_property)" + \
                                 " VALUES (%s, %s, %s, %s)"
                     self.cur.execute(sql_query, (
                       article_id,
@@ -554,8 +500,7 @@ class MySQLPipeline(object):
             return
         if AppConfig.SAVE_RAW_METADATA_IN_DATABASE:
             # Save copy of metadata in database.
-            sql_query = "INSERT INTO article_raw" + \
-                        " (article_id, title, body, metadata)" + \
+            sql_query = "INSERT INTO article_raw (article_id, title, body, metadata)" + \
                         " VALUES (%s, %s, %s, %s)"
             try:
                 self.cur.execute(sql_query,
@@ -566,26 +511,6 @@ class MySQLPipeline(object):
                 self.conn.commit()
             except mysql.connector.errors.DataError as err:
                 self.spider.logger.warn("save_article_html(): {}".format(err))
-
-    def save_html_file(self, item: ArticleItem, article_id: int):
-        """Save body HTML to a file.
-
-        This is useful for retrieving article metadata later on, without
-        scraping the article again. The filename convention is
-        `article_id.html`, where `article_id` corresponds to the database ID.
-
-        Parameters
-        ----------
-        item : items.ArticleItem
-            An ArticleItem with the extracted information from a news article.
-        article_id : int
-            ID to an existing article.
-        """
-        if AppConfig.HTML_FILES_DIRECTORY and item["response_html"]:
-            # Save copy of HTML in file system.
-            filename = f"{AppConfig.HTML_FILES_DIRECTORY}/{article_id}.html"
-            with open(filename, "w", encoding="utf8") as html_file:
-                html_file.write(item["response_html"])
 
     def save_log_action(self, action: LogAction, user="",
                         source_id=0, article_id=0, item=None):

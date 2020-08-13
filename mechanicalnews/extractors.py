@@ -40,8 +40,7 @@ class ArticleExtractor():
     ```
     """
 
-    def __init__(self, url=None, html=None, parse=True,
-                 raise_exceptions=False):
+    def __init__(self, url=None, html=None, parse=True, raise_exceptions=False):
         """Initialize and set default values.
 
         Parameters
@@ -89,8 +88,7 @@ class ArticleExtractor():
                 self._url = self.url
 
     @classmethod
-    def from_response(cls, response: Response, parse=True, 
-                      raise_exceptions=False):
+    def from_response(cls, response: Response, parse=True, raise_exceptions=False):
         """Create an instance from a Scrapy response object.
 
         Parameters
@@ -139,8 +137,7 @@ class ArticleExtractor():
         ArticleExtractor
             Returns a new ArticleExtractor obejct.
         """
-        return cls(url=url, html=html, parse=parse,
-                   raise_exceptions=raise_exceptions)
+        return cls(url=url, html=html, parse=parse, raise_exceptions=raise_exceptions)
 
     def __bool__(self):
         """Returns whether HTML exists."""

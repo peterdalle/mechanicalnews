@@ -64,9 +64,8 @@ class BaseArticleSpider(CrawlSpider):
 
     # HTML <meta> tags that should not be saved. They do not contain any
     # useful information about the article.
-    EXCLUDED_META_TAGS = ["viewport", "msapplication-config",
-                          "googlebot", "robots", "format-detection",
-                          "theme-color", ""]
+    EXCLUDED_META_TAGS = ["viewport", "msapplication-config", "googlebot", "robots",
+                          "format-detection", "theme-color", ""]
 
     @classmethod
     def __init_subclass__(subcls, **kwargs):
@@ -81,19 +80,11 @@ class BaseArticleSpider(CrawlSpider):
           as `BaseArticleSpider`.
         """
         # Must implement.
-        required_child_attributes = [
-            "parse_article",
-            "LAST_UPDATED",
-            "DEFAULT_LANGUAGE",
-            "SPIDER_GUID",
-            "name",
-            "allowed_domains",
-            "start_urls",
-        ]
+        required_child_attributes = ["parse_article", "LAST_UPDATED", "DEFAULT_LANGUAGE",
+                                     "SPIDER_GUID", "name", "allowed_domains", "start_urls"]
         for method in required_child_attributes:
             if method not in subcls.__dict__:
-                raise NotImplementedError("{}() must implement {}.".format(
-                    subcls.__name__, method))
+                raise NotImplementedError("{}() must implement {}.".format(subcls.__name__, method))
         # Cannot implement.
         disallowed_child_attributes = [
             "extract_information",
@@ -101,31 +92,25 @@ class BaseArticleSpider(CrawlSpider):
         ]
         for method in disallowed_child_attributes:
             if method in subcls.__dict__:
-                raise AttributeError(
-                   ("{} cannot implement {}. It's reserved" +
+                raise AttributeError(("{} cannot implement {}. It's reserved" +
                     " for BaseArticleSpider.").format(subcls.__name__, method))
         # Spider GUID cannot be same as BaseArticleSpider GUID.
         if subcls.SPIDER_GUID == BaseArticleSpider.SPIDER_GUID:
-            raise ValueError(("{} cannot have same GUID as" +
-                              " BaseArticleSpider.").format(subcls.__name__))
+            raise ValueError(("{} cannot have same GUID as BaseArticleSpider.").format(subcls.__name__))
         # Required combinations of attributes.
         if subcls.USE_SPLASH:
-            if not hasattr(subcls, "get_lua_script") and not callable(
-                                                        subcls.get_lua_script):
+            if not hasattr(subcls, "get_lua_script") and not callable(subcls.get_lua_script):
                 raise AttributeError(("{} is missing get_lua_script(), which" +
                                       " is required when USE_SPLASH is set" +
                                       " to True.").format(subcls.__name__))
         # Required combinations of attributes.
         if subcls.USE_LOGIN:
             if not hasattr(subcls, "login") and not callable(subcls.login):
-                raise AttributeError(
-                   ("{} is missing login(), which is required when USE_LOGIN" +
-                    " is set to True.").format(subcls.__name__))
-            if not hasattr(subcls, "after_login") and not callable(
-                                                   subcls.after_login):
-                raise AttributeError(
-                   ("{} is missing after_login(), which is required when" +
-                    " USE_LOGIN is set to True.").format(subcls.__name__))
+                raise AttributeError(("{} is missing login(), which is required when USE_LOGIN" +
+                                      " is set to True.").format(subcls.__name__))
+            if not hasattr(subcls, "after_login") and not callable(subcls.after_login):
+                raise AttributeError(("{} is missing after_login(), which is required when" +
+                                      " USE_LOGIN is set to True.").format(subcls.__name__))
 
     def __repr__(self) -> str:
         """Get string representation of spider.
@@ -175,8 +160,7 @@ class BaseArticleSpider(CrawlSpider):
             Reason why the spider closed (e.g., 'finished', 'shutdown').
             Automatically passed on from the Scrapy spider.
         """
-        self.logger.info("Spider {} closed (reason: {})".format(self.name,
-                                                                reason))
+        self.logger.info("Spider {} closed (reason: {})".format(self.name, reason))
 
     def _get_request(self, url: str, callback=None) -> Request:
         """Make request to scrape webpage.
@@ -202,9 +186,7 @@ class BaseArticleSpider(CrawlSpider):
                 return SplashRequest(url=url,
                                      callback=callback,
                                      errback=self.handle_errors,
-                                     args={
-                                         "lua_source": self.get_lua_script()
-                                     },
+                                     args={ "lua_source": self.get_lua_script() },
                                      cache_args=['lua_source'],
                                      endpoint="execute",
                                      # Keeps cookies for session.
@@ -213,14 +195,10 @@ class BaseArticleSpider(CrawlSpider):
             elif self.USE_SELENIUM:
                 # For dynamic web pages, with JavaScript. Note that
                 # a webdriver (e.g. Firefox) must be started separately.
-                return SeleniumRequest(url=url,
-                                       callback=callback,
-                                       errback=self.handle_errors)
+                return SeleniumRequest(url=url, callback=callback, errback=self.handle_errors)
             else:
                 # For static web pages, with plain HTML, using Scrapy.
-                return Request(url=url,
-                               callback=callback,
-                               errback=self.handle_errors)
+                return Request(url=url, callback=callback, errback=self.handle_errors)
         else:
             self.logger.debug("Skipping, not allowed <{}>".format(url))
 
@@ -243,10 +221,8 @@ class BaseArticleSpider(CrawlSpider):
             Links from the frontpage and what URL/source the link came from.
         """
         frontpage_links = response.css("a::attr(href)").getall()
-        absolute_urls = ArticleExtractor.make_absolute_urls(response.url,
-                                                            frontpage_links)
-        self.logger.info("Found {} links <{}>".format(
-            len(frontpage_links), response.url))
+        absolute_urls = ArticleExtractor.make_absolute_urls(response.url, frontpage_links)
+        self.logger.info("Found {} links <{}>".format(len(frontpage_links), response.url))
         yield FrontpageItem({
             "source_id": self._SOURCE_ID,
             "from_url": response.url,
@@ -330,8 +306,7 @@ class BaseArticleSpider(CrawlSpider):
         str
             Returns Lua script that will be used by Scrapy-splash.
         """
-        raise NotImplementedError(
-              "Spider '{}' must implement get_lua_script().".format(self.name))
+        raise NotImplementedError("Spider '{}' must implement get_lua_script().".format(self.name))
 
     @abstractmethod
     def login(self) -> Response:
@@ -351,8 +326,7 @@ class BaseArticleSpider(CrawlSpider):
         scrapy.http.Response
             A Scrapy response object.
         """
-        raise NotImplementedError(
-                       "Spider '{}' must implement login().".format(self.name))
+        raise NotImplementedError("Spider '{}' must implement login().".format(self.name))
 
     @abstractmethod
     def after_login(self, response: Response):
@@ -365,8 +339,7 @@ class BaseArticleSpider(CrawlSpider):
         response : scrapy.http.Response
             A Scrapy response object.
         """
-        raise NotImplementedError(
-                 "Spider '{}' must implement after_login().".format(self.name))
+        raise NotImplementedError("Spider '{}' must implement after_login().".format(self.name))
 
     @abstractmethod
     def parse_article(self, response: Response) -> ArticleItem:
@@ -386,11 +359,9 @@ class BaseArticleSpider(CrawlSpider):
         items.ArticleItem
             Should return an ArticleItem.
         """
-        raise NotImplementedError(
-               "Spider '{}' must implement parse_article().".format(self.name))
+        raise NotImplementedError("Spider '{}' must implement parse_article().".format(self.name))
 
-    def extract_information(self, response: Response,
-                            item: ArticleItem) -> ArticleItem:
+    def extract_information(self, response: Response, item: ArticleItem) -> ArticleItem:
         """Adds additional metadata to an `ArticleItem` object.
 
         This method adds response headers, metadata, HTML, URL, <title>, text
@@ -467,14 +438,11 @@ class BaseArticleSpider(CrawlSpider):
         self._check_item_data_type(item, PageType, ["page_type"])
         self._check_item_data_type(item, ArticleGenre, ["article_genre"])
         if item["body"]:
-            ValueError("Item with key 'body' should not be set by spider." +
-                       " Set 'body_html' instead.")
+            ValueError("Item with key 'body' should not be set by spider. Set 'body_html' instead.")
         if item["title_raw"]:
-            ValueError("Item with key 'title_raw' should not be set by" +
-                       " spider. It's set automatically.")
+            ValueError("Item with key 'title_raw' should not be set by spider. It's set automatically.")
 
-    def _check_item_data_type(self, item: ArticleItem,
-                              data_type: object, fields: list):
+    def _check_item_data_type(self, item: ArticleItem, data_type: object, fields: list):
         """Check that the article content have the right data types.
 
         Raises a `TypeError` if incorrect data type is found, otherwise it
@@ -491,8 +459,7 @@ class BaseArticleSpider(CrawlSpider):
         """
         for key in fields:
             if item[key] and type(item[key]) != data_type:
-                raise TypeError(("Key '{}' in 'item' must be of type" +
-                                " '{}'.").format(key, data_type))
+                raise TypeError(("Key '{}' in 'item' must be of type '{}'.").format(key, data_type))
 
     def _set_text_counts(self):
         """Count the character length and word length of lead and body, as well

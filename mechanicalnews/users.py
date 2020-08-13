@@ -11,36 +11,42 @@ from mechanicalnews.settings import AppConfig
 from mechanicalnews.database import MySqlDatabase
 
 
-class UserManager():
+class User():
     """Handle users and their API keys."""
 
-    def __init__(self):
-        self.db = MySqlDatabase.from_settings()
-
-    def is_valid_api_key(self, api_key: str) -> bool:
-        """Check if API key is valid (active and authorized).
+    def __init__(self, api_key: str):
+        """Create new instance of user.
 
         Parameters
         ----------
         api_key : str
-            API key for a user who is permitted to use the service.
+            API key for user.
+        """
+        if not api_key:
+            raise ValueError("API key cannot be empty.")
+        self.db = MySqlDatabase.from_settings()
+        self.api_key = api_key
+        self.user = None
+
+    def is_active(self) -> bool:
+        """Check if API key is active.
 
         Returns
         -------
         bool
-            Returns True if the API key is valid and authorized,
-            otherwise False.
+            Returns True if the API key exists and is active, otherwise False.
         """
-        user = self.get_user_by_key(api_key)
-        if not user:
+        if not self.user:
+            self.user = self.get_user()
+        if not self.user:
             return False
-        elif not user["active"]:
+        elif not self.user["active"]:
             return False
-        elif user["to_date"] and user["to_date"] < datetime.datetime.today():
+        elif self.user["to_date"] and self.user["to_date"] < datetime.datetime.today():
             return False
         return True
 
-    def incremenet_api_key_count(self, api_key: str):
+    def incremenet_api_key_count(self):
         """Increment the number of times an API key was used.
 
         Parameters
@@ -48,20 +54,12 @@ class UserManager():
         api_key : str
             API key for a user who is permitted to use the service.
         """
-        if not api_key:
-            raise ValueError("API key cannot be empty.")
         with self.db:
             self.db.execute("UPDATE users SET api_counter=api_counter+1," +
-                            " api_last_used = NOW()" +
-                            " WHERE api_key = %s LIMIT 1", (api_key, ))
+                            " api_last_used = NOW() WHERE api_key = %s LIMIT 1", (self.api_key, ))
 
-    def is_administrator(self, api_key: str) -> bool:
-        """Check if the API key has administrator privileges.
-
-        Parameters
-        ----------
-        api_key : str
-            API key for a user who is permitted to use the service.
+    def is_administrator(self) -> bool:
+        """Check if the user has administrator privileges.
 
         Returns
         -------
@@ -71,13 +69,8 @@ class UserManager():
         # TODO: Add API key check.
         return True
 
-    def get_user_by_key(self, api_key: str) -> dict:
-        """Get user by API key.
-
-        Parameters
-        ----------
-        api_key : str
-            API key for a user who is permitted to use the service.
+    def get_user(self) -> dict:
+        """Get user (by API key).
 
         Returns
         -------
@@ -86,8 +79,7 @@ class UserManager():
         """
         user = None
         self.db.open()
-        self.db.cur.execute(
-            "SELECT * FROM users WHERE api_key = %s LIMIT 1", (api_key, ))
+        self.db.cur.execute("SELECT * FROM users WHERE api_key = %s LIMIT 1", (self.api_key, ))
         if self.db.cur:
             for row in self.db.cur:
                 user = row

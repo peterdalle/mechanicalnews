@@ -85,11 +85,9 @@ if __name__ == "__main__":
         elif args.splash:
             settings = MechanicalNews.get_crawler_settings()
             if MechanicalNews.is_splash_running():
-                print("Scrapy Splash found at {}".format(
-                                                       settings["SPLASH_URL"]))
+                print("Scrapy Splash found at {}".format(settings["SPLASH_URL"]))
             else:
-                print("Can't find Scrapy Splash at {}".format(
-                                                       settings["SPLASH_URL"]))
+                print("Can't find Scrapy Splash at {}".format(settings["SPLASH_URL"]))
         elif args.info:
             MechanicalNews.print_settings(debug=args.debug_mode)
         elif args.version:

@@ -5,7 +5,7 @@ to classify the article content.
 """
 import scrapy
 from enum import IntEnum
-from mechanicalnews.utils import DateUtils, WebUtils
+from mechanicalnews.utils import DateUtils, WebUtils, TextUtils
 
 
 class PageType(IntEnum):
@@ -123,8 +123,7 @@ class FrontpageItem(scrapy.Item):
         str
             Returns a human-readable message of the object.
         """
-        return "FrontPageItem() {} (#{})".format(self.get("source"),
-                                                 self.get("source_id"))
+        return "FrontPageItem() {} (#{})".format(self.get("source"), self.get("source_id"))
 
     def __str__(self) -> str:
         """Get string representation of object.
@@ -184,6 +183,7 @@ class ArticleItem(scrapy.Item):
     response_html = scrapy.Field()
     images = scrapy.Field()        # Used by Scrapy:s ImagesPipeline.
     image_urls = scrapy.Field()    # Used by Scrapy:s ImagesPipeline.
+    log = scrapy.Field()
 
     def __init__(self, *args, **kwargs):
         """Constructor."""
@@ -271,6 +271,8 @@ class ArticleItem(scrapy.Item):
             "article_id": int(row["id"]),
             "parent_id": int(row["parent_id"]),
             "source_id": int(row["source_id"]),
+            "source": row["source"],
+            "domain": WebUtils.get_domain_name(row["url"]),
             "url_id": int(row["url_id"]),
             "url": row["url"],
             "title": row["title"],
@@ -291,8 +293,6 @@ class ArticleItem(scrapy.Item):
             "num_videos": int(row["num_videos"]),
             "page_type": row["page_type"],
             "article_genre": row["article_genre"],
-            "source": row["source"],
-            "domain": WebUtils.get_domain_name(row["url"]),
         })
         return cls
 
@@ -314,11 +314,13 @@ class ArticleItem(scrapy.Item):
         data = {
             "id": self.get("article_id"),
             "parent_id": self.get("parent_id"),
+            "source": self.get("source"),
             "source_id": self.get("source_id"),
-            "url_id": self.get("url_id"),
+            "domain": self.get("domain"),
             "url": self.get("url"),
+            "url_id": self.get("url_id"),
             "title": self.get("title"),
-            "checksum": self.get("checksum"),
+            "h1": self.get("h1"),
             "lead": self.get("lead"),
             "body": self.get("body"),
             "authors": self.get("authors"),
@@ -326,20 +328,16 @@ class ArticleItem(scrapy.Item):
             "section": self.get("section"),
             "categories": self.get("categories"),
             "tags": self.get("tags"),
+            "checksum": self.get("checksum"),
             "num_images": self.get("num_images"),
             "num_videos": self.get("num_videos"),
             "page_type": self.get("page_type"),
             "article_genre": self.get("article_genre"),
             "is_paywalled": self.get("is_paywalled"),
             "is_deleted": self.get("is_deleted"),
-            "source": self.get("source"),
-            "domain": self.get("domain"),
-            "added": DateUtils.set_iso_date(
-                self.get("added"), iso_date=iso_date),
-            "published": DateUtils.set_iso_date(
-                self.get("published"), iso_date=iso_date),
-            "edited": DateUtils.set_iso_date(
-                self.get("edited"), iso_date=iso_date),
+            "added": DateUtils.set_iso_date(self.get("added"), iso_date=iso_date),
+            "published": DateUtils.set_iso_date(self.get("published"), iso_date=iso_date),
+            "edited": DateUtils.set_iso_date(self.get("edited"), iso_date=iso_date),
         }
         if include_lists:
             lists = {
@@ -353,12 +351,29 @@ class ArticleItem(scrapy.Item):
             data = {**data, **lists}
         return data
 
+    def compute_checksum(self) -> str:
+        """Get hash of article content.
+
+        Useful for fast and easy detection of  content changes by comparing
+        MD5 hashes of an old and new article.
+
+        Returns
+        -------
+        str
+            An MD5 hash of the news article information.
+        """
+        data = str(self.get("title")) + str(self.get("h1")) + \
+               str(self.get("lead")) + str(self.get("body")) + \
+               str(self.get("published")) + str(self.get("edited")) +  \
+               str(self.get("authors")) + str(self.get("section")) + \
+               str(self.get("tags")) + str(self.get("categories"))
+        return TextUtils.md5_hash(data)
+
 
 class SourceItem():
     """Item for a single source (e.g., news site) that has been scraped."""
 
-    def __init__(self, source_id=0, parent_id=0, name="", url="", added=None,
-                 guid=None):
+    def __init__(self, source_id=0, parent_id=0, name="", url="", added=None, guid=None):
         """Constructor.
 
         Parameters
@@ -397,12 +412,8 @@ class SourceItem():
         SourceItem
             Returns a new instance of SourceItem.
         """
-        cls = SourceItem(source_id=row["id"],
-                         parent_id=row["parent_id"],
-                         name=row["name"],
-                         url=row["url"],
-                         added=row["added"],
-                         guid=row["guid"])
+        cls = SourceItem(source_id=row["id"], parent_id=row["parent_id"], name=row["name"],
+                         url=row["url"], added=row["added"], guid=row["guid"])
         return cls
 
     def get_json(self, iso_date=True) -> dict:
