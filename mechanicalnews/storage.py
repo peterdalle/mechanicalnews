@@ -108,16 +108,10 @@ class MySqlDatabase():
 
     def open(self):
         """Open database connection."""
-        if self.conn and self.cur:
-            return
-        self.conn = mysql.connector.connect(database=self.database,
-                                            user=self.username,
-                                            password=self.password,
-                                            auth_plugin=self.auth_plugin,
-                                            charset=self.charset)
-        self.cur = self.conn.cursor(dictionary=True)
-        self.cur.execute("SET NAMES 'utf8mb4';")
-        self.cur.execute("SET CHARACTER SET utf8mb4;")
+        if not self.conn:
+            self.conn = self.get_conn()
+        if not self.cur:
+            self.cur = self.get_cur()
 
     def close(self):
         """Close database connection."""
@@ -127,6 +121,19 @@ class MySqlDatabase():
         if self.conn:
             self.conn.close()
             self.conn = None
+
+    def get_conn(self):
+        return mysql.connector.connect(database=self.database,
+                                       user=self.username,
+                                       password=self.password,
+                                       auth_plugin=self.auth_plugin,
+                                       charset=self.charset)
+
+    def get_cur(self):
+        cur = self.conn.cursor(dictionary=True, buffered=True)
+        cur.execute("SET NAMES 'utf8mb4';")
+        cur.execute("SET CHARACTER SET utf8mb4;")
+        return cur
 
     def execute(self, query: str, params=None):
         """Execute a SQL query that does not return any value.
@@ -141,7 +148,7 @@ class MySqlDatabase():
         self.cur.execute(operation=query, params=params)
         self.conn.commit()
 
-    def get_rows(self, query: str) -> list:
+    def get_rows(self, query: str, params=None) -> list:
         """Execute query and retrieve rows.
 
         This method is only suitable for small data since no iterator is used.
@@ -156,7 +163,7 @@ class MySqlDatabase():
         list
             Returns a list of rows.
         """
-        self.cur.execute(query)
+        self.cur.execute(query, params=params)
         if self.cur:
             rows = []
             for row in self.cur:
@@ -165,7 +172,7 @@ class MySqlDatabase():
         else:
             return None
 
-    def get_scalar(self, query: str, field=None, default=None) -> object:
+    def get_scalar(self, query: str, params=None, field=None, default=None) -> object:
         """Get scalar value.
 
         Parameters
@@ -180,14 +187,13 @@ class MySqlDatabase():
         Returns
         -------
         object
-            Returns a scalar value (typically numeric or string).
+            Returns a scalar value.
         """
-        self.cur.execute(query)
+        self.cur.execute(query, params=params)
         if field:
             value = self.cur.fetchone()[field]
         else:
-            # Figure out the field name by myself
-            # by assuming it's the first one.
+            # Figure out field name, assuming it's the first one.
             value = self.cur.fetchone()
             if type(value) == dict:
                 for key in value.keys():
@@ -199,7 +205,7 @@ class MySqlDatabase():
 
 
 class StaticFiles():
-    """Serve static files and build URLs and directories."""
+    """Serve static files and build URL and directory paths."""
 
     @staticmethod
     def get_html_filename(article_id: int) -> str:
@@ -225,9 +231,7 @@ class StaticFiles():
         if not AppConfig.HTML_FILES_DIRECTORY:
             return
         filename = StaticFiles.get_html_full_filename(article_id)
-        with open(filename, "w", encoding="utf8") as file:
+        if type(html) == bytes:
+            html = html.decode("utf-8")
+        with open(filename, "w", encoding="utf-8") as file:
             file.write(html)
-
-    @staticmethod
-    def read_html_file(article_id: int) -> str:
-        raise NotImplementedError()  # TODO

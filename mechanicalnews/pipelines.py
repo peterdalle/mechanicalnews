@@ -11,35 +11,14 @@ from mechanicalnews.items import FrontpageItem, ArticleItem, LogAction
 from mechanicalnews.sources import Sources
 from mechanicalnews.utils import TextUtils, WebUtils
 from mechanicalnews.settings import AppConfig
-from mechanicalnews.storage import StaticFiles
+from mechanicalnews.storage import StaticFiles, MySqlDatabase
 
 
 class MySQLPipeline(object):
     """Pipeline to save scraped items to MySQL/MariaDB."""
 
-    def __init__(self, database: str, username: str, password: str, charset: str, auth_plugin: str):
-        """Default constructor.
-
-        Parameters
-        ----------
-        database : str
-            Name of MySQL database.
-        username : str
-            Username to the database server.
-        password : str
-            Password to the database server.
-        charset : str
-            Character encoding set.
-        auth_plugin : str
-            MySQL database authentication. Either 'mysql_native_password' for
-            the traditional method of authentication (hash of password) or
-            '' (empty string) for the newer and more secure authentication.
-        """
-        self.database = database
-        self.username = username
-        self.password = password
-        self.charset = charset
-        self.auth_plugin = auth_plugin
+    def __init__(self):
+        self.db = MySqlDatabase.from_settings()
 
     @classmethod
     def from_crawler(cls, crawler: Crawler):
@@ -55,11 +34,7 @@ class MySQLPipeline(object):
         MySQLPipeline
             Returns a new MySQLPipeline object.
         """
-        return cls(database=AppConfig.MYSQL_DB,
-                   username=AppConfig.MYSQL_USER,
-                   password=AppConfig.MYSQL_PASS,
-                   charset=AppConfig.MYSQL_CHARSET,
-                   auth_plugin=AppConfig.MYSQL_AUTH_PLUGIN)
+        return cls()
 
     def open_spider(self, spider: Spider):
         """Runs when spider opens. Opens database connection.
@@ -69,19 +44,12 @@ class MySQLPipeline(object):
         spider : scrapy.spiders.Spider
             A Scrapy spider object.
         """
+        self.spider = spider
         self._register_spider(spider)
         Sources.set_spider_last_run(guid=spider.SPIDER_GUID)
         self.spider_name = spider.name
-        self.conn = mysql.connector.connect(database=self.database,
-                                            user=self.username,
-                                            password=self.password,
-                                            auth_plugin=self.auth_plugin,
-                                            charset=self.charset)
-        self.cur = self.conn.cursor(buffered=True)
-        self.cur.execute("SET NAMES 'utf8mb4';")
-        self.cur.execute("SET CHARACTER SET utf8mb4;")
-        self.save_log_action(LogAction.OPEN_SPIDER,
-                             source_id=spider._SOURCE_ID)
+        self.db.open()
+        self.save_log_action(LogAction.OPEN_SPIDER, source_id=spider._SOURCE_ID)
 
     def _register_spider(self, spider: Spider):
         """Register spider using the GUID.
@@ -99,8 +67,7 @@ class MySQLPipeline(object):
         if spider._SOURCE_ID:
             spider.logger.info("Spider registered as #{}".format(spider._SOURCE_ID))
         else:
-            spider.logger.warn("Couldn't register ID for '{}' (GUID {})".format(
-                               spider.name, spider.SPIDER_GUID))
+            spider.logger.warn("Couldn't register spider '{}'".format(spider.name))
 
     def close_spider(self, spider: Spider):
         """Runs when spider closes. Closes database connection.
@@ -112,10 +79,7 @@ class MySQLPipeline(object):
         """
         self.save_log_action(LogAction.CLOSE_SPIDER, source_id=spider._SOURCE_ID)
         self.save_scraping_stats(spider)
-        if self.cur:
-            self.cur.close()
-        if self.conn:
-            self.conn.close()
+        self.db.close()
 
     def process_item(self, item: ArticleItem, spider: Spider):
         """Process scraped item, save to database.
@@ -158,13 +122,12 @@ class MySQLPipeline(object):
                 to_url_id, _ = self._create_or_get_url_id_from_url(link)
                 sql_query = "INSERT INTO frontpage_articles (source_id, from_url_id, to_url_id, added)" + \
                             " VALUES (%s, %s, %s, %s)"
-                self.cur.execute(sql_query, (
+                self.db.execute(sql_query, (
                     TextUtils.sanitize_int(item["source_id"], default=0),
                     TextUtils.sanitize_int(from_url_id, default=0),
                     TextUtils.sanitize_int(to_url_id, default=0),
                     TextUtils.sanitize_str(item["added"], default=None),
                 ))
-                self.conn.commit()
 
     def _process_article(self, item: ArticleItem):
         """Process scraped article item and save to database.
@@ -234,7 +197,6 @@ class MySQLPipeline(object):
         self.save_article_links(item, article_id)
         self.save_article_metadata(item, article_id)
         self.save_article_http_headers(item, article_id)
-        self.save_article_html(item, article_id)
         StaticFiles.save_html_file(item["response_html"], article_id)
         return article_id
 
@@ -262,11 +224,11 @@ class MySQLPipeline(object):
             domain = WebUtils.get_domain_name(url)
             url_checksum = TextUtils.md5_hash(url)
             sql_query = "INSERT INTO article_urls (url, domain, checksum) VALUES(%s, %s, %s)"
-            self.cur.execute(sql_query, (
+            self.db.execute(sql_query, (
                 TextUtils.sanitize_str(url, default="", keep_newlines=False),
                 TextUtils.sanitize_str(domain, default=None),
                 TextUtils.sanitize_str(url_checksum, default="")))
-            return self.cur.lastrowid, True
+            return self.db.cur.lastrowid, True
         except mysql.connector.OperationalError:
             # Couldn't insert. Likely "duplicate key". Get ID slow way.
             url_id = self._get_url_id_from_url(url, use_checksum=False)
@@ -297,17 +259,15 @@ class MySQLPipeline(object):
         int
             Returns the ID for the URL. If URL is not found, None is returned.
         """
+        if not url:
+            raise ValueError("url not set.")
         if use_checksum:
             # Fast URL lookup using MD5 checksums (by index).
-            url_checksum = TextUtils.md5_hash(url)
-            self.cur.execute("SELECT id FROM article_urls WHERE checksum = %s", (url_checksum, ))
-            for row in self.cur.fetchall():
-                return row[0]
+            checksum = TextUtils.md5_hash(url)
+            return self.db.get_scalar("SELECT id FROM article_urls WHERE checksum = %s LIMIT 1", (checksum, ))
         else:
             # Slow URL lookup using string comparison.
-            self.cur.execute("SELECT id FROM article_urls WHERE url = %s", (url, ))
-            for row in self.cur.fetchall():
-                return row[0]
+            return self.db.get_scalar("SELECT id FROM article_urls WHERE url = %s LIMIT 1", (url, ))
         return None
 
     def _get_article_checksum_by_url_id(self, url_id: int) -> dict:
@@ -326,11 +286,11 @@ class MySQLPipeline(object):
             Returns a dict with the keys "article_id" and "checksum". Returns
             None if no article is found.
         """
-        self.cur.execute("SELECT id, checksum FROM articles" +
+        self.db.execute("SELECT id, checksum FROM articles" +
                          " WHERE url_id = %s ORDER BY id DESC LIMIT 1", (url_id, ))
-        if self.cur:
-            for row in self.cur:
-                return {"article_id": row[0], "checksum": row[1]}
+        if self.db.cur:
+            for row in self.db.cur:
+                return {"article_id": row["id"], "checksum": row["checksum"]}
         return None
 
     def save_article_and_get_id(self, item: ArticleItem, url_id: int) -> int:
@@ -364,7 +324,7 @@ class MySQLPipeline(object):
                         body_words) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s,
                         %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                         %s, %s, %s)"""
-            self.cur.execute(sql_query, (
+            self.db.execute(sql_query, (
                 item["parent_id"],
                 item["source_id"],
                 url_id,
@@ -397,8 +357,7 @@ class MySQLPipeline(object):
                 TextUtils.sanitize_int(item["body_length"], default=0),
                 TextUtils.sanitize_int(item["body_words"], default=0)
             ))
-            article_id = self.cur.lastrowid
-            self.conn.commit()
+            article_id = self.db.cur.lastrowid
             return article_id
         except mysql.connector.Error as err:
             self.spider.logger.error(
@@ -422,8 +381,7 @@ class MySQLPipeline(object):
                     if to_url_id > 0:
                         sql_query = "INSERT INTO article_links" + \
                                     " (article_id, to_url_id) VALUES (%s, %s)"
-                        self.cur.execute(sql_query, (article_id, to_url_id, ))
-                        self.conn.commit()
+                        self.db.execute(sql_query, (article_id, to_url_id, ))
 
     def save_article_images(self, item: ArticleItem, article_id: int):
         """Save article images to database.
@@ -439,10 +397,9 @@ class MySQLPipeline(object):
             for image in item["images"]:
                 sql_query = "INSERT INTO article_images (article_id, url, path, checksum)" + \
                             " VALUES (%s, %s, %s, %s)"
-                self.cur.execute(sql_query, (article_id, image["url"],
+                self.db.execute(sql_query, (article_id, image["url"],
                                              image["path"],
                                              image["checksum"], ))
-                self.conn.commit()
 
     def save_article_http_headers(self, item: ArticleItem, article_id: int):
         """Save article HTTP headers to database.
@@ -457,11 +414,10 @@ class MySQLPipeline(object):
         if item["response_headers"] and article_id:
             for header in item["response_headers"]:
                 sql_query = "INSERT INTO article_headers (article_id, name, value) VALUES (%s, %s, %s)"
-                self.cur.execute(sql_query,
+                self.db.execute(sql_query,
                                  (article_id,
                                   header,
                                   item["response_headers"][header], ))
-                self.conn.commit()
 
     def save_article_metadata(self, item: ArticleItem, article_id: int):
         """Save article <meta> tags to database.
@@ -478,40 +434,13 @@ class MySQLPipeline(object):
                 if meta["content"] != "":
                     sql_query = "INSERT INTO article_meta (article_id, name, content, is_property)" + \
                                 " VALUES (%s, %s, %s, %s)"
-                    self.cur.execute(sql_query, (
+                    self.db.execute(sql_query, (
                       article_id,
                       TextUtils.sanitize_str(meta["name"],
                                              keep_newlines=False),
                       TextUtils.sanitize_str(meta["content"]),
                       TextUtils.sanitize_int(meta["is_property"], default=0),
                     ))
-                    self.conn.commit()
-
-    def save_article_html(self, item: ArticleItem, article_id: int):
-        """Save raw title, body HTML, and metadata to database.
-
-        Parameters
-        ----------
-        item : items.ArticleItem
-            An ArticleItem with the extracted information from a news article.
-        article_id : int
-            ID to an existing article.
-        """
-        if not article_id:
-            return
-        if AppConfig.SAVE_RAW_METADATA_IN_DATABASE:
-            # Save copy of metadata in database.
-            sql_query = "INSERT INTO article_raw (article_id, title, body, metadata)" + \
-                        " VALUES (%s, %s, %s, %s)"
-            try:
-                self.cur.execute(sql_query,
-                                 (article_id,
-                                     str(item["title_raw"]).strip(),
-                                     item["body_html"],
-                                     str(item["metadata_raw"]).strip()))
-                self.conn.commit()
-            except mysql.connector.errors.DataError as err:
-                self.spider.logger.warn("save_article_html(): {}".format(err))
 
     def save_log_action(self, action: LogAction, user="",
                         source_id=0, article_id=0, item=None):
@@ -538,13 +467,10 @@ class MySQLPipeline(object):
                 latency = round(latency * 1000) if latency else None
             except KeyError:
                 latency = None
-        sql_query = "INSERT INTO log" + \
-                    " (action_id, added, source_id, article_id, latency)" + \
+        sql_query = "INSERT INTO log (action_id, added, source_id, article_id, latency)" + \
                     " VALUES (%s, %s, %s, %s, %s)"
         added = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        self.cur.execute(sql_query, (int(action), added, source_id,
-                                     article_id, latency))
-        self.conn.commit()
+        self.db.execute(sql_query, (int(action), added, source_id, article_id, latency))
 
     def save_scraping_stats(self, spider: Spider):
         """Save Scrapy crawler statistics.
@@ -591,5 +517,4 @@ class MySQLPipeline(object):
                   stats["finish_time"],
                   str(stats["finish_reason"]),
                   int(stats["elapsed_time_seconds"]))
-        self.cur.execute(sql, params)
-        self.conn.commit()
+        self.db.execute(sql, params)
