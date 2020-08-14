@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Module for generating reports about the Mechanical News status, such as
-statistics about the crawling, database size, number of articles collected etc.
-Can be runned as a command line interface (CLI) or as module you can import.
-Most of the summary statistics are fetched from the stats module.
+Module for generating reports (e.g., crawling, database size, number of
+articles) and monitor these values to alert user if problems arise. Can be
+runned as command line interface (CLI) or module.
 """
 import sys
 import argparse
@@ -14,6 +13,71 @@ from mechanicalnews.stats import SummaryStats
 from mechanicalnews.settings import AppConfig
 from mechanicalnews.utils import TextUtils, FileUtils, WebUtils, PrettyPrint
 from mechanicalnews.items import LogAction
+from mechanicalnews.storage import MySqlDatabase
+
+
+class Monitor():
+    """Monitor collected articles for missing values, and alert administrator
+    if they are too many."""
+
+    def get_missing_values(self, days_back=7) -> dict:
+        s = SummaryStats.get_summary()
+        missing = SummaryStats.get_missing_values_by_day(days_back)
+        missing = self.build_missing_values_message(missing)
+        return {
+                    "num_articles": s["num_articles"],
+                    "num_article_versions": s["num_article_versions"],
+                    "num_article_images": s["num_article_images"],
+                    "num_urls": s["num_urls"],
+                    "num_frontpage_articles": s["num_frontpage_articles"],
+                    "num_errors": s["num_errors"],
+                    "num_log": s["num_log"],
+                    "days_back": days_back,
+                    "missing": missing,
+                }
+
+    def build_missing_values_message(self, missing_data) -> str:
+        """Build collected articles and missing values message."""
+        miss = 0
+        found = 0
+        for na in missing_data:
+            if int(na["missing"]) == 1:
+                # Get missing articles.
+                miss = int(na["articles"])
+                for not_na in missing_data:
+                    is_same_date = not_na["added"] == na["added"]
+                    is_missing = int(not_na["missing"]) == 0
+                    if is_missing and is_same_date:
+                        # Get total articles.
+                        found = int(not_na["articles"]) + miss
+                # Percent missing.
+                percent = int((miss / found) * 100)
+        print(miss)
+        print(found)
+        print(percent)
+        return ""
+    
+    def get(self, days_back, field="published"):
+        # Counting Missing Values
+        # https://www.oreilly.com/library/view/mysql-cookbook/0596001452/ch13s05.html
+        sql = f"""SELECT
+        COUNT(*) AS 'n_total',
+        COUNT({field}) AS 'n_nonmissing',
+        COUNT(*) - COUNT({field}) AS 'n_missing',
+        ((COUNT(*) - COUNT({field})) * 100) / COUNT(*) AS 'pct_missing'
+        FROM articles
+        WHERE (added BETWEEN DATE_ADD(NOW(), INTERVAL -{days_back} DAY) AND NOW())
+        GROUP BY source_id
+        """
+        with MySqlDatabase.from_settings() as db:
+            return {
+                "field": field,
+                "days_back": days_back,
+                "data": db.get_rows(sql),
+        }
+
+    def alert_administrator(self):
+        pass
 
 
 class Reports():
