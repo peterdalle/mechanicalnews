@@ -393,7 +393,7 @@ class BaseArticleSpider(CrawlSpider):
         self.item["url"] = response.url
         self.item["response_headers"] = response.headers
         self.item["response_meta"] = response.meta
-        self.item["response_html"] = str(response.body)
+        self.item["response_html"] = response.body
         self.item["referer_url"] = response.request.url
         self.item["title_raw"] = response.css("title::text").get(default="")
         if self.item["body_html"]:
