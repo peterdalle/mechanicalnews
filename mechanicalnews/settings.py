@@ -147,11 +147,6 @@ class AppConfig():
     # Leave empty to not store.
     HTML_FILES_DIRECTORY = "/mechanicalnews/data/full_html"
 
-    # Whether or not to save all metadata (JSON-LD, Microdata, Microformat,
-    # OpenGraph, and RDFa) into database. This data is also accessible via the
-    # API.
-    SAVE_RAW_METADATA_IN_DATABASE = True
-
     # URLs that starts with these characters should be excluded from
     # the crawling, as well as links that are saved in articles.
     DISALLOWED_URL_PREFIXES = ["tel:", "mailto:", "javascript:",
