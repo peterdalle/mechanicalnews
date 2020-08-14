@@ -30,7 +30,7 @@ class Sources():
         return None
 
     @staticmethod
-    def get_source_by_id(source_id) -> dict:
+    def get_source_by_id(source_id: int) -> dict:
         """Get source by its ID from database."""
         source = None
         db = MySqlDatabase.from_settings()
@@ -59,7 +59,7 @@ class Sources():
         return source_id
 
     @staticmethod
-    def register_spider(name, guid) -> int:
+    def register_spider(name, guid: str) -> int:
         """Register source GUID in database and return source ID."""
         spider_id = Sources.get_id_by_guid(guid)
         if spider_id:
@@ -73,7 +73,7 @@ class Sources():
         return None
 
     @staticmethod
-    def set_spider_last_run(guid):
+    def set_spider_last_run(guid: str):
         """Set the datetime in database when the spider started.
 
         Parameters
