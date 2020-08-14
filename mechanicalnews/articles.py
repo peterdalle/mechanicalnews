@@ -355,26 +355,6 @@ class Articles():
         self.db.close()
         return metadata
 
-    def get_metadata_raw(self, article_id):
-        """Get raw metadata for a specific article.
-
-        Raw metadata is all metadata collected."""
-        if not article_id:
-            raise ValueError("article_id cannot be empty.")
-        self.db.open()
-        self.db.cur.execute("SELECT metadata FROM article_raw WHERE article_id = %s LIMIT 1", (article_id,))
-        json_dict = None
-        if self.db.cur:
-            json_data = self.db.cur.fetchone()
-            if json_data:
-                json_data = json_data["metadata"]
-            try:
-                json_dict = json.loads(json_data)
-            except BaseException:
-                pass
-        self.db.close()
-        return json_dict
-
     def get_log(self, article_id, iso_date=True):
         """Get log for a specific article.
 
