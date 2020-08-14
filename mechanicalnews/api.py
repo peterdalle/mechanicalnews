@@ -10,8 +10,7 @@ import time
 import string
 import random
 from functools import wraps
-from flask import Flask, jsonify, request, make_response, redirect
-from flask import send_from_directory
+from flask import Flask, jsonify, request, make_response, redirect, send_from_directory
 from flask_restful import Resource, Api
 from mechanicalnews.settings import AppConfig
 from mechanicalnews.articles import Articles, ArticleFilter
@@ -81,11 +80,11 @@ def append_article_resources(data, all_urls=False):
             "article_url": root_url,
             "versions_url": root_url + "/versions",
             "metadata_url": root_url + "/metadata",
-            "metadataraw_url": root_url + "/metadataraw",
             "images_url": root_url + "/images",
             "links_url": root_url + "/links",
             "logs_url": root_url + "/log",
             "headers_url": root_url + "/headers",
+            "html_url": root_url + "/html",
         }
     else:
         urls = {
@@ -408,20 +407,6 @@ class ArticleMetadata(Resource):
         return api_ok(response)
 
 
-class ArticleMetadataRaw(Resource):
-    @require_api_key
-    @add_response_headers()
-    def get(self, article_id):
-        """Get raw metadata of specific article."""
-        a = Articles()
-        metadata = a.get_metadata_raw(article_id)
-        response = {
-            "id": article_id,
-            "data": metadata,
-        }
-        return api_ok(response)
-
-
 class ArticleLog(Resource):
     @require_api_key
     @add_response_headers()
@@ -475,24 +460,18 @@ class ServeImage(Resource):
             return redirect(location, code=307)
 
 
-class ServeHtml(Resource):
+class ArticleHtml(Resource):
     @require_api_key
     @add_response_headers()
     def get(self, article_id):
-        """Serve HTML from file system."""
+        """Serve HTML from file system. Uses flask for convenience even if
+        it's slower than web server, because it's not a common scenario."""
         fullname = StaticFiles.get_html_full_filename(article_id)
-        path = AppConfig.FULL_IMAGES_DIRECTORY + "/"
-        file = StaticFiles.get_html_filename(article_id)
-        if app.debug:
-            # Debug: Serve binary files dynamically via Flask (slow).
-            if os.path.isfile(fullname):
-                return send_from_directory(path, file)
-            else:
-                return not_found("HTML file not found: '{}'".format(filename))
-        else:
-            # Production: Serve binary file statically via Apache/nginx (fast).
-            # TODO
-            return NotImplementedError("Serving HTML files statically is not implemented yet.")
+        if os.path.isfile(fullname):
+            path = AppConfig.HTML_FILES_DIRECTORY + "/"
+            file = StaticFiles.get_html_filename(article_id)
+            return send_from_directory(path, file, mimetype="text/plain", conditional=True)
+        return not_found("HTML file not found ({})".format(fullname))
 
 
 if __name__ == "__main__":
@@ -503,16 +482,15 @@ if __name__ == "__main__":
     api.add_resource(SourceByID, "/sources/<int:source_id>")
     api.add_resource(FrontpageByDomain, "/frontpages/<string:domain>")
     api.add_resource(ServeImage, "/images/<string:image>")
-    api.add_resource(ServeHtml, "/html/<int:article_id>")
     api.add_resource(ArticleList, "/articles")
     api.add_resource(ArticleCount, "/count")
     api.add_resource(ArticleHitsOverTime, "/hits")
     api.add_resource(ArticleByID, "/articles/<int:article_id>")
+    api.add_resource(ArticleHtml, "/articles/<int:article_id>/html")
     api.add_resource(ArticleImages, "/articles/<int:article_id>/images")
     api.add_resource(ArticleVersions, "/articles/<int:article_id>/versions")
     api.add_resource(ArticleLinks, "/articles/<int:article_id>/links")
     api.add_resource(ArticleLog, "/articles/<int:article_id>/log")
     api.add_resource(ArticleHeaders, "/articles/<int:article_id>/headers")
     api.add_resource(ArticleMetadata, "/articles/<int:article_id>/metadata")
-    api.add_resource(ArticleMetadataRaw, "/articles/<int:article_id>/metadataraw")
     app.run()
