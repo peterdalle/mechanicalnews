@@ -50,6 +50,7 @@ class RunTest_TextUtils(unittest.TestCase):
         self.assertEqual(TextUtils.detect_language(self.text_sv), "sv")
         self.assertEqual(TextUtils.detect_language(self.text_en), "en")
         self.assertEqual(TextUtils.detect_language("No"), "")
+        self.assertEqual(TextUtils.detect_language("No", fallback="en"), "en")
 
     def test_strip_html_tags(self):
         before = "<html><body><p>This is a text</p></body></html>"
@@ -217,8 +218,7 @@ class RunTest_WebUtils(unittest.TestCase):
             (None, None),
         ]
         for url, true_domain in without_subdomains:
-            test_domain = WebUtils.get_domain_name(
-                          url, include_subdomain=False)
+            test_domain = WebUtils.get_domain_name(url, include_subdomain=False)
             self.assertEqual(test_domain, true_domain)
 
 

@@ -12,7 +12,6 @@ import unittest
 from __init__ import MechanicalNews
 
 
-
 class RunTest_MechanicalNews(unittest.TestCase):
 
     def test_find_spider_from_url(self):
